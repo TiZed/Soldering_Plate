@@ -1,0 +1,4 @@
+*.FCStd1
+*.FCStd2
+*-backups
+fp-info-cache
