@@ -450,8 +450,8 @@
       "idf": "",
       "netlist": "",
       "specctra_dsn": "",
-      "step": "",
-      "vrml": ""
+      "step": "SolderPlate_Power.step",
+      "vrml": "SolderPlate_Power.wrl"
     },
     "page_layout_descr_file": ""
   },
