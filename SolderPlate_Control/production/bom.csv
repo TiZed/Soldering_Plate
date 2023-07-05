@@ -1,0 +1,10 @@
+Designator,Footprint,Quantity,Value,LCSC Part #
+"C1, C2",0603,2,10nF,
+J1,PinHeader_2x04_P2.54mm_Vertical,1,Encoder,
+"Q1, Q4",SOT-23,2,Si2301CDS,
+"R1, R4, R5, R6, R7",0603,5,10K,
+"R10, R9",0603,2,470,
+"R13, R14",0603,2,1K,
+R2,0603,1,120,
+R3,0603,1,68,
+U1,RotaryEncoder_Bourns_Vertical_PEL12D-2xxxX-Sxxxx,1,PEL12D,
