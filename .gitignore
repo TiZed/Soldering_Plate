@@ -2,3 +2,4 @@
 *.FCStd2
 *-backups
 fp-info-cache
+build/

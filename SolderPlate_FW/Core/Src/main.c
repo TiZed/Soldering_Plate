@@ -427,8 +427,8 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(GPIOA, SSR_Pin|Fan_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, DispD6_Pin|DispD7_Pin|DispE_Pin|DispRW_Pin
-                          |DispRS_Pin|DispD0_Pin|DispD1_Pin|DispD2_Pin
+  HAL_GPIO_WritePin(GPIOB, DispD6_Pin|DispD7_Pin|DispRW_Pin|DispRS_Pin
+                          |DispE_Pin|DispD0_Pin|DispD1_Pin|DispD2_Pin
                           |DispD3_Pin|DispD4_Pin|DispD5_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin : BP_LED_Pin */
@@ -463,11 +463,11 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(EncSwitch_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : DispD6_Pin DispD7_Pin DispE_Pin DispRW_Pin
-                           DispRS_Pin DispD0_Pin DispD1_Pin DispD2_Pin
+  /*Configure GPIO pins : DispD6_Pin DispD7_Pin DispRW_Pin DispRS_Pin
+                           DispE_Pin DispD0_Pin DispD1_Pin DispD2_Pin
                            DispD3_Pin DispD4_Pin DispD5_Pin */
-  GPIO_InitStruct.Pin = DispD6_Pin|DispD7_Pin|DispE_Pin|DispRW_Pin
-                          |DispRS_Pin|DispD0_Pin|DispD1_Pin|DispD2_Pin
+  GPIO_InitStruct.Pin = DispD6_Pin|DispD7_Pin|DispRW_Pin|DispRS_Pin
+                          |DispE_Pin|DispD0_Pin|DispD1_Pin|DispD2_Pin
                           |DispD3_Pin|DispD4_Pin|DispD5_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
