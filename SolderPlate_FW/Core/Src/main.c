@@ -22,7 +22,10 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "usb_redirect.h"
 #include "usbd_cdc_if.h"
+
+#include <stdio.h>
 
 /* USER CODE END Includes */
 
@@ -34,7 +37,7 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 
-#define PUTCHAR_PROTOTYPE int __io_putchar(int ch)
+// #define PUTCHAR_PROTOTYPE int __io_putchar(int ch)
 
 /* USER CODE END PD */
 
@@ -108,10 +111,11 @@ int main(void)
   MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
 
-  printf("Start!\n") ;
-  HAL_GPIO_WritePin(BP_LED_GPIO_Port, BP_LED_Pin, GPIO_PIN_SET) ;
+  HAL_GPIO_WritePin(BP_LED_GPIO_Port, BP_LED_Pin, GPIO_PIN_RESET) ;
   HAL_GPIO_WritePin(SSR_GPIO_Port, SSR_Pin, GPIO_PIN_RESET) ;
   HAL_GPIO_WritePin(Fan_GPIO_Port, Fan_Pin, GPIO_PIN_RESET) ;
+
+//  setvbuf(stdout, NULL, _IONBF, 0);
 
   /* USER CODE END 2 */
 
@@ -119,7 +123,12 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+    HAL_GPIO_TogglePin(BP_LED_GPIO_Port, BP_LED_Pin) ;
+  //  CDC_Transmit_FS((uint8_t *) test, 6) ;
+    printf("Test 2\r\n") ;
+    HAL_Delay(1000) ;
     /* USER CODE END WHILE */
+    
 
     /* USER CODE BEGIN 3 */
   }
@@ -488,10 +497,7 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE BEGIN 4 */
 
-PUTCHAR_PROTOTYPE {
-  CDC_Transmit_FS((uint8_t *) &ch, 1) ;
-  return ch ;
-}
+
 
 /* USER CODE END 4 */
 
