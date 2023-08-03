@@ -69,8 +69,6 @@ void Error_Handler(void);
 #define SSR_GPIO_Port GPIOA
 #define Fan_Pin GPIO_PIN_4
 #define Fan_GPIO_Port GPIOA
-#define EncSwitch_Pin GPIO_PIN_2
-#define EncSwitch_GPIO_Port GPIOB
 #define DispD6_Pin GPIO_PIN_10
 #define DispD6_GPIO_Port GPIOB
 #define DispD7_Pin GPIO_PIN_11
@@ -85,6 +83,8 @@ void Error_Handler(void);
 #define EncA_GPIO_Port GPIOA
 #define EncB_Pin GPIO_PIN_9
 #define EncB_GPIO_Port GPIOA
+#define EncSwitch_Pin GPIO_PIN_10
+#define EncSwitch_GPIO_Port GPIOA
 #define EncLedBlue_Pin GPIO_PIN_15
 #define EncLedBlue_GPIO_Port GPIOA
 #define EncLedOrange_Pin GPIO_PIN_3

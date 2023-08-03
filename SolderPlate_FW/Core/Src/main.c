@@ -36,6 +36,8 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+#define ADC_VDDA  (3.3)
+#define ADC_RANGE (4096)
 
 // #define PUTCHAR_PROTOTYPE int __io_putchar(int ch)
 
@@ -84,6 +86,7 @@ volatile uint16_t adc_results[3] ;
 int main(void)
 {
   /* USER CODE BEGIN 1 */
+  float adc_v ;
 
   /* USER CODE END 1 */
 
@@ -120,18 +123,26 @@ int main(void)
 //  setvbuf(stdout, NULL, _IONBF, 0);
 
   /* USER CODE END 2 */
-  if(HAL_ADCEx_Calibration_Start(&hadc1) == HAL_OK) printf("ADC Calibrated.\r\n") ;
-  else printf("ADC calibration failed.\r\n") ;
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+    printf("\r\n-----\r\n") ;
     HAL_GPIO_TogglePin(BP_LED_GPIO_Port, BP_LED_Pin) ;
-
     HAL_ADC_Start_DMA(&hadc1, (uint32_t *) adc_results, 3) ;
+    HAL_Delay(500) ;
+
+    adc_v = ADC_VDDA * ((float) adc_results[0] / (float) ADC_RANGE) ;
+    printf("VTherm = %1.3fV (%d)\r\n", adc_v, adc_results[0]) ;
+
+    adc_v = ADC_VDDA * ((float) adc_results[1] / (float) ADC_RANGE) ;
+    printf("VIntTemp = %1.3fV (%d)\r\n", adc_v, adc_results[1]) ;
+
+    adc_v = ADC_VDDA * ((float) adc_results[2] / (float) ADC_RANGE) ;
+    printf("Vref = %1.3fV (%d)\r\n", adc_v, adc_results[2]) ;
+
   //  CDC_Transmit_FS((uint8_t *) test, 6) ;
-    printf("Test 2\r\n") ;
     HAL_Delay(1000) ;
     /* USER CODE END WHILE */
 
@@ -209,7 +220,7 @@ static void MX_ADC1_Init(void)
   */
   hadc1.Instance = ADC1;
   hadc1.Init.ScanConvMode = ADC_SCAN_ENABLE;
-  hadc1.Init.ContinuousConvMode = ENABLE;
+  hadc1.Init.ContinuousConvMode = DISABLE;
   hadc1.Init.DiscontinuousConvMode = DISABLE;
   hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
   hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
@@ -223,7 +234,7 @@ static void MX_ADC1_Init(void)
   */
   sConfig.Channel = ADC_CHANNEL_0;
   sConfig.Rank = ADC_REGULAR_RANK_1;
-  sConfig.SamplingTime = ADC_SAMPLETIME_1CYCLE_5;
+  sConfig.SamplingTime = ADC_SAMPLETIME_7CYCLES_5;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
   {
     Error_Handler();
@@ -482,9 +493,9 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(BP_LED_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : PA1 PA5 PA6 PA7
-                           PA10 PA13 PA14 */
+                           PA13 PA14 */
   GPIO_InitStruct.Pin = GPIO_PIN_1|GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_7
-                          |GPIO_PIN_10|GPIO_PIN_13|GPIO_PIN_14;
+                          |GPIO_PIN_13|GPIO_PIN_14;
   GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
@@ -495,16 +506,10 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PB0 PB1 PB15 */
-  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_15;
+  /*Configure GPIO pins : PB0 PB1 PB2 PB15 */
+  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_15;
   GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : EncSwitch_Pin */
-  GPIO_InitStruct.Pin = EncSwitch_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_PULLUP;
-  HAL_GPIO_Init(EncSwitch_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : DispD6_Pin DispD7_Pin DispRW_Pin DispRS_Pin
                            DispE_Pin DispD0_Pin DispD1_Pin DispD2_Pin
@@ -516,6 +521,12 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_MEDIUM;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : EncSwitch_Pin */
+  GPIO_InitStruct.Pin = EncSwitch_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(EncSwitch_GPIO_Port, &GPIO_InitStruct);
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
 /* USER CODE END MX_GPIO_Init_2 */
