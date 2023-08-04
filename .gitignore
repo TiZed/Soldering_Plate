@@ -1,5 +1,6 @@
 *.FCStd1
 *.FCStd2
 *-backups
+*.lck
 fp-info-cache
 build/
