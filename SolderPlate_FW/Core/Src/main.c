@@ -116,11 +116,24 @@ int main(void)
   MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
 
+  HAL_ADCEx_Calibration_Start(&hadc1) ;
+
   HAL_GPIO_WritePin(BP_LED_GPIO_Port, BP_LED_Pin, GPIO_PIN_RESET) ;
   HAL_GPIO_WritePin(SSR_GPIO_Port, SSR_Pin, GPIO_PIN_RESET) ;
   HAL_GPIO_WritePin(Fan_GPIO_Port, Fan_Pin, GPIO_PIN_RESET) ;
 
+  HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1) ;
+  HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_2) ;
+
+  TIM2->CCR1 = 65000 ;
+  TIM2->CCR2 = 65000 ;
+
+  HAL_TIM_Encoder_Start(&htim1, TIM_CHANNEL_ALL) ;
+
+  HAL_Delay(10) ;
+
 //  setvbuf(stdout, NULL, _IONBF, 0);
+
 
   /* USER CODE END 2 */
 
@@ -128,19 +141,19 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-    printf("\r\n-----\r\n") ;
+    printf("-----\n\r") ;
     HAL_GPIO_TogglePin(BP_LED_GPIO_Port, BP_LED_Pin) ;
     HAL_ADC_Start_DMA(&hadc1, (uint32_t *) adc_results, 3) ;
     HAL_Delay(500) ;
 
     adc_v = ADC_VDDA * ((float) adc_results[0] / (float) ADC_RANGE) ;
-    printf("VTherm = %1.3fV (%d)\r\n", adc_v, adc_results[0]) ;
+    printf("VTherm = %1.3fV (%d)\n\r", adc_v, adc_results[0]) ;
 
     adc_v = ADC_VDDA * ((float) adc_results[1] / (float) ADC_RANGE) ;
-    printf("VIntTemp = %1.3fV (%d)\r\n", adc_v, adc_results[1]) ;
+    printf("VIntTemp = %1.3fV (%d)\n\r", adc_v, adc_results[1]) ;
 
     adc_v = ADC_VDDA * ((float) adc_results[2] / (float) ADC_RANGE) ;
-    printf("Vref = %1.3fV (%d)\r\n", adc_v, adc_results[2]) ;
+    printf("Vref = %1.3fV (%d)\n\r", adc_v, adc_results[2]) ;
 
   //  CDC_Transmit_FS((uint8_t *) test, 6) ;
     HAL_Delay(1000) ;
@@ -170,7 +183,7 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.HSIState = RCC_HSI_ON;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
-  RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL6;
+  RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL9;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
     Error_Handler();
@@ -185,13 +198,13 @@ void SystemClock_Config(void)
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_1) != HAL_OK)
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
   {
     Error_Handler();
   }
   PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_ADC|RCC_PERIPHCLK_USB;
-  PeriphClkInit.AdcClockSelection = RCC_ADCPCLK2_DIV4;
-  PeriphClkInit.UsbClockSelection = RCC_USBCLKSOURCE_PLL;
+  PeriphClkInit.AdcClockSelection = RCC_ADCPCLK2_DIV6;
+  PeriphClkInit.UsbClockSelection = RCC_USBCLKSOURCE_PLL_DIV1_5;
   if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
   {
     Error_Handler();
@@ -287,12 +300,12 @@ static void MX_TIM1_Init(void)
   htim1.Init.Period = 65535;
   htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim1.Init.RepetitionCounter = 0;
-  htim1.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-  sConfig.EncoderMode = TIM_ENCODERMODE_TI1;
+  htim1.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
+  sConfig.EncoderMode = TIM_ENCODERMODE_TI12;
   sConfig.IC1Polarity = TIM_ICPOLARITY_RISING;
   sConfig.IC1Selection = TIM_ICSELECTION_DIRECTTI;
   sConfig.IC1Prescaler = TIM_ICPSC_DIV1;
-  sConfig.IC1Filter = 0;
+  sConfig.IC1Filter = 10;
   sConfig.IC2Polarity = TIM_ICPOLARITY_RISING;
   sConfig.IC2Selection = TIM_ICSELECTION_DIRECTTI;
   sConfig.IC2Prescaler = TIM_ICPSC_DIV1;
@@ -337,7 +350,7 @@ static void MX_TIM2_Init(void)
   htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim2.Init.Period = 65535;
   htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-  htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
   if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
   {
     Error_Handler();
@@ -359,7 +372,7 @@ static void MX_TIM2_Init(void)
   }
   sConfigOC.OCMode = TIM_OCMODE_PWM1;
   sConfigOC.Pulse = 0;
-  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_LOW;
   sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
   if (HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
   {
@@ -369,6 +382,7 @@ static void MX_TIM2_Init(void)
   {
     Error_Handler();
   }
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
   if (HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_3) != HAL_OK)
   {
     Error_Handler();
@@ -522,18 +536,26 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_MEDIUM;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : EncSwitch_Pin */
-  GPIO_InitStruct.Pin = EncSwitch_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  /*Configure GPIO pin : EncButton_Pin */
+  GPIO_InitStruct.Pin = EncButton_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
-  HAL_GPIO_Init(EncSwitch_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(EncButton_GPIO_Port, &GPIO_InitStruct);
+
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
 /* USER CODE END MX_GPIO_Init_2 */
 }
 
 /* USER CODE BEGIN 4 */
-
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
+  if (GPIO_Pin == EncButton_Pin) {
+    printf("Encoder %ld\n\r", (TIM1->CNT)>>2) ;
+  }
+}
 
 
 /* USER CODE END 4 */
