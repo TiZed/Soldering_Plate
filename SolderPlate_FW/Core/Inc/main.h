@@ -73,12 +73,12 @@ void Error_Handler(void);
 #define DispD6_GPIO_Port GPIOB
 #define DispD7_Pin GPIO_PIN_11
 #define DispD7_GPIO_Port GPIOB
-#define DispRW_Pin GPIO_PIN_12
-#define DispRW_GPIO_Port GPIOB
-#define DispRS_Pin GPIO_PIN_13
-#define DispRS_GPIO_Port GPIOB
-#define DispE_Pin GPIO_PIN_14
+#define DispE_Pin GPIO_PIN_12
 #define DispE_GPIO_Port GPIOB
+#define DispRW_Pin GPIO_PIN_13
+#define DispRW_GPIO_Port GPIOB
+#define DispRS_Pin GPIO_PIN_14
+#define DispRS_GPIO_Port GPIOB
 #define EncA_Pin GPIO_PIN_8
 #define EncA_GPIO_Port GPIOA
 #define EncB_Pin GPIO_PIN_9
@@ -104,6 +104,7 @@ void Error_Handler(void);
 #define DispD5_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
+#define Disp_Port  GPIOB
 
 /* USER CODE END Private defines */
 

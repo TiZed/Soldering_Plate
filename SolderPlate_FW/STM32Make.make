@@ -58,6 +58,7 @@ C_SOURCES =  \
 /tools/STM32/STM32Cube_FW_F1_V1.8.5/Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_core.c \
 /tools/STM32/STM32Cube_FW_F1_V1.8.5/Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_ctlreq.c \
 /tools/STM32/STM32Cube_FW_F1_V1.8.5/Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_ioreq.c \
+Core/Src/lcd16x2.c \
 Core/Src/main.c \
 Core/Src/stm32f1xx_hal_msp.c \
 Core/Src/stm32f1xx_it.c \
