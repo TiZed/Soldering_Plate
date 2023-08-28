@@ -75,11 +75,15 @@ extern "C" {
 
 typedef enum {IF_4BIT, IF_8BIT} IF_Type ;
 typedef enum {OP_CMD = 0, OP_DATA} OP_Type ;
+typedef enum {LINE_1 = 0x00, LINE_2 = 0x40} Line_Num_t ;
 
 // Functions
 void LCD_write(OP_Type op, uint8_t data) ;
 void LCD_Init(GPIO_TypeDef *lcdport, IF_Type if_type, 
               uint16_t disp_rw, uint16_t disp_rs, uint16_t disp_e, ...) ;
+void LCD_Print(char * str) ;
+void LCD_SetPosition(Line_Num_t line, uint8_t col) ;
+void LCD_Clear() ;
 
 #ifdef __cplusplus
 }

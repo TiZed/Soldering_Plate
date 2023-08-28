@@ -125,13 +125,22 @@ int main(void)
 
   HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1) ;
   HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_2) ;
+  HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_3) ;
 
   TIM2->CCR1 = 65000 ;
   TIM2->CCR2 = 65000 ;
+  TIM2->CCR3 = 29000 ;
 
   HAL_TIM_Encoder_Start(&htim1, TIM_CHANNEL_ALL) ;
 
-  HAL_Delay(10) ;
+  HAL_Delay(40) ;
+
+  LCD_Init(DispD0_GPIO_Port, IF_8BIT, 
+           DispRW_Pin, DispRS_Pin, DispE_Pin,
+           DispD0_Pin, DispD1_Pin, DispD2_Pin, DispD3_Pin, 
+           DispD4_Pin, DispD5_Pin, DispD6_Pin, DispD7_Pin) ;
+
+  LCD_Print("Test") ;
 
 //  setvbuf(stdout, NULL, _IONBF, 0);
 

@@ -45,6 +45,7 @@ void LCD_write(OP_Type op, uint8_t data) {
 
   LCDPort->ODR = odr ;
 
+  HAL_Delay(E_DELAY_MS) ;
   HAL_GPIO_WritePin(LCDPort, DispE, GPIO_PIN_SET) ;
   HAL_Delay(E_DELAY_MS) ;
   HAL_GPIO_WritePin(LCDPort, DispE, GPIO_PIN_RESET) ;
@@ -60,15 +61,12 @@ void LCD_write(OP_Type op, uint8_t data) {
   odr |= DispD4 *  CHECKBIT(data, 1) ;
 
   LCDPort->ODR = odr ;
-
+  
+  HAL_Delay(E_DELAY_MS) ;
   HAL_GPIO_WritePin(LCDPort, DispE, GPIO_PIN_SET) ;
   HAL_Delay(E_DELAY_MS) ;
   HAL_GPIO_WritePin(LCDPort, DispE, GPIO_PIN_RESET) ;
   HAL_Delay(E_DELAY_MS) ;
-}
-
-void LCD_write_cmd(uint16_t cmd) {
-
 }
 
 void LCD_Init(GPIO_TypeDef *lcdport, IF_Type if_type, 
@@ -113,13 +111,13 @@ void LCD_Init(GPIO_TypeDef *lcdport, IF_Type if_type,
     HAL_GPIO_WritePin(LCDPort, DispD0, GPIO_PIN_RESET) ;
   }
 
-  HAL_Delay(35000) ;
+  HAL_Delay(2) ;
   if(if_type == IF_8BIT)
-    LCD_write(OP_CMD, FUNCTION_SET | FONT_5X11 | DATA_LEN_8BIT | DISP_2LINES) ;
+    LCD_write(OP_CMD, FUNCTION_SET | FONT_5X8 | DATA_LEN_8BIT | DISP_2LINES) ;
   else {
     LCD_write(OP_CMD, 0x22) ;
 
-    uint16_t odr = 0 ;
+    uint32_t odr = 0 ;
 
     odr |= DispD7 * CHECKBIT(0b1100, 4) ;
     odr |= DispD6 * CHECKBIT(0b1100, 3) ;
@@ -134,10 +132,28 @@ void LCD_Init(GPIO_TypeDef *lcdport, IF_Type if_type,
     HAL_Delay(E_DELAY_MS) ;
   }
 
-  HAL_Delay(40) ;
+  HAL_Delay(1) ;
   LCD_write(OP_CMD, DISPLAY_CONTROL | DISPLAY_ON | CURSOR_OFF | CURSOR_SOLID) ;
-  HAL_Delay(40) ;
+  HAL_Delay(1) ;
   LCD_write(OP_CMD, CLEAR_DISPLAY) ;
-  HAL_Delay(1540) ;
+  HAL_Delay(2) ;
   LCD_write(OP_CMD, ENTRY_MODE_SET | MOVE_CUR_RIGHT | DONT_SHIFT_D) ;
+}
+
+void LCD_Print(char * str) {
+  uint32_t i = 0 ;
+
+  while(str[i] != '\0') {
+    LCD_write(OP_DATA, str[i++]) ;
+  }
+}
+
+void LCD_SetPosition(Line_Num_t line, uint8_t col) {
+  if(col > 0x0f) return ;
+  LCD_write(OP_CMD, DDRAM_ADDRESS | line | col) ;
+}
+
+void LCD_Clear() {
+  LCD_write(OP_CMD, CLEAR_DISPLAY) ;
+  HAL_Delay(2) ;
 }
