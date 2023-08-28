@@ -129,18 +129,21 @@ int main(void)
 
   TIM2->CCR1 = 65000 ;
   TIM2->CCR2 = 65000 ;
-  TIM2->CCR3 = 29000 ;
+  TIM2->CCR3 = 27000 ;
 
   HAL_TIM_Encoder_Start(&htim1, TIM_CHANNEL_ALL) ;
-
-  HAL_Delay(40) ;
-
+  
   LCD_Init(DispD0_GPIO_Port, IF_8BIT, 
            DispRW_Pin, DispRS_Pin, DispE_Pin,
            DispD0_Pin, DispD1_Pin, DispD2_Pin, DispD3_Pin, 
            DispD4_Pin, DispD5_Pin, DispD6_Pin, DispD7_Pin) ;
 
-  LCD_Print("Test") ;
+  LCD_SetPosition(LINE_1, 0) ;
+  LCD_Print("Mayush") ;
+  LCD_SetPosition(LINE_2, 0) ;
+  LCD_Print("Nettush") ;
+
+//  LCD_SetPosition(LINE_1, 0) ;
 
 //  setvbuf(stdout, NULL, _IONBF, 0);
 
@@ -516,10 +519,8 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(BP_LED_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PA1 PA5 PA6 PA7
-                           PA13 PA14 */
-  GPIO_InitStruct.Pin = GPIO_PIN_1|GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_7
-                          |GPIO_PIN_13|GPIO_PIN_14;
+  /*Configure GPIO pins : PA1 PA5 PA6 PA7 */
+  GPIO_InitStruct.Pin = GPIO_PIN_1|GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_7;
   GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
@@ -543,7 +544,7 @@ static void MX_GPIO_Init(void)
                           |DispD3_Pin|DispD4_Pin|DispD5_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_MEDIUM;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /*Configure GPIO pin : EncButton_Pin */
