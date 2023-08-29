@@ -87,7 +87,9 @@ volatile uint16_t adc_results[3] ;
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-  float adc_v ;
+  float adc_v, plate_temp, set_temp ;
+  char temp_update[17] ;
+  int32_t last_count ;
 
   /* USER CODE END 1 */
 
@@ -139,13 +141,13 @@ int main(void)
            DispD4_Pin, DispD5_Pin, DispD6_Pin, DispD7_Pin) ;
 
   LCD_SetPosition(LINE_1, 0) ;
-  LCD_Print("Mayush") ;
-  LCD_SetPosition(LINE_2, 0) ;
-  LCD_Print("Nettush") ;
-
-//  LCD_SetPosition(LINE_1, 0) ;
-
+  LCD_Print("  Temp.   Set") ;
+//           1234567890123456
+  
 //  setvbuf(stdout, NULL, _IONBF, 0);
+  set_temp = 0.0 ;
+  plate_temp = 0.0 ;
+  last_count = TIM1->CNT ;
 
 
   /* USER CODE END 2 */
@@ -167,6 +169,16 @@ int main(void)
 
     adc_v = ADC_VDDA * ((float) adc_results[2] / (float) ADC_RANGE) ;
     printf("Vref = %1.3fV (%d)\n\r", adc_v, adc_results[2]) ;
+
+    if(TIM1->CNT - last_count) { 
+      set_temp += (TIM1->CNT - last_count) * 0.1 ;
+      last_count = TIM1->CNT ;
+    }
+
+    LCD_SetPosition(LINE_2, 0) ;
+    snprintf(temp_update, 17, "  % 5.1f  % 5.1f", plate_temp, set_temp) ;
+    LCD_Print(temp_update) ;
+
 
   //  CDC_Transmit_FS((uint8_t *) test, 6) ;
     HAL_Delay(1000) ;
