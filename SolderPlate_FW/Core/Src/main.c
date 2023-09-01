@@ -87,7 +87,7 @@ volatile uint16_t adc_results[3] ;
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-  float adc_v, plate_temp, set_temp ;
+  float adc_v, plate_temp, user_set_temp ;
   char temp_update[17] ;
   int32_t last_count ;
 
@@ -145,10 +145,9 @@ int main(void)
 //           1234567890123456
   
 //  setvbuf(stdout, NULL, _IONBF, 0);
-  set_temp = 0.0 ;
+  user_set_temp = DEFAULT_TEMP ;
   plate_temp = 0.0 ;
   last_count = TIM1->CNT ;
-
 
   /* USER CODE END 2 */
 
@@ -170,13 +169,20 @@ int main(void)
     adc_v = ADC_VDDA * ((float) adc_results[2] / (float) ADC_RANGE) ;
     printf("Vref = %1.3fV (%d)\n\r", adc_v, adc_results[2]) ;
 
-    if(TIM1->CNT - last_count) { 
-      set_temp += (TIM1->CNT - last_count) * 0.1 ;
-      last_count = TIM1->CNT ;
+    if((TIM1->CNT >> 2) - last_count) { 
+      int32_t change = ((int32_t)(TIM1->CNT >> 2) - last_count) ;
+
+      if(abs(change) < 10) user_set_temp += change * 0.1 ;
+      else user_set_temp += change * 1.0 ;
+
+      last_count = TIM1->CNT >> 2 ;
+
+      if(user_set_temp > MAX_TEMP) user_set_temp = MAX_TEMP ;
+      if(user_set_temp < 0) user_set_temp = 0 ;
     }
 
     LCD_SetPosition(LINE_2, 0) ;
-    snprintf(temp_update, 17, "  % 5.1f  % 5.1f", plate_temp, set_temp) ;
+    snprintf(temp_update, 17, "  % 5.1f  % 5.1f", plate_temp, user_set_temp) ;
     LCD_Print(temp_update) ;
 
 
@@ -334,7 +340,7 @@ static void MX_TIM1_Init(void)
   sConfig.IC2Polarity = TIM_ICPOLARITY_RISING;
   sConfig.IC2Selection = TIM_ICSELECTION_DIRECTTI;
   sConfig.IC2Prescaler = TIM_ICPSC_DIV1;
-  sConfig.IC2Filter = 0;
+  sConfig.IC2Filter = 10;
   if (HAL_TIM_Encoder_Init(&htim1, &sConfig) != HAL_OK)
   {
     Error_Handler();
@@ -467,6 +473,10 @@ static void MX_TIM3_Init(void)
   sConfigOC.Pulse = 0;
   sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
   sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+  if (HAL_TIM_OC_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
+  {
+    Error_Handler();
+  }
   if (HAL_TIM_OC_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_4) != HAL_OK)
   {
     Error_Handler();

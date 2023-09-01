@@ -106,6 +106,9 @@ void Error_Handler(void);
 /* USER CODE BEGIN Private defines */
 #define Disp_Port  GPIOB
 
+#define MAX_TEMP 400.0 
+#define DEFAULT_TEMP 100.0
+
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus
