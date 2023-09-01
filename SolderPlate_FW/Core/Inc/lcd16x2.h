@@ -1,6 +1,7 @@
 /**
   ******************************************************************************
   * @file           : lcd16x2.h
+  * @author         : TiZed
   * @brief          : Header for lcd16x2.c file.
   *                   Contains the common defines for driving a 16x2 text LCD.
   ******************************************************************************
@@ -13,8 +14,8 @@
   ******************************************************************************
   */
 
-#ifndef __LCD16X2_H
-#define __LCD16X2_H
+#ifndef LCD16X2_H
+#define LCD16X2_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -86,4 +87,4 @@ void LCD_Clear() ;
 }
 #endif
 
-#endif /* __LCD16X8_H */
+#endif /* LCD16X8_H */

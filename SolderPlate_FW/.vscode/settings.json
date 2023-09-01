@@ -6,7 +6,8 @@
         "stddef.h": "c",
         "reent.h": "c",
         "errno.h": "c",
-        "unistd.h": "c"
+        "unistd.h": "c",
+        "math.h": "c"
     },
     "cortex-debug.armToolchainPath": "/tools/gcc-arm/gcc-arm-none-eabi-10.3-2021.10/bin",
     "cortex-debug.openocdPath": "/usr/local/bin/openocd",
