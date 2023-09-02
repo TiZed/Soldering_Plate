@@ -28,6 +28,8 @@
 #include <stdio.h>
 
 #include "lcd16x2.h"
+#include "config.h"
+#include "thermistor.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -88,6 +90,7 @@ int main(void)
 {
   /* USER CODE BEGIN 1 */
   float adc_v, plate_temp, user_set_temp ;
+  float therm_rt ;
   char temp_update[17] ;
   int32_t last_count ;
 
@@ -147,6 +150,7 @@ int main(void)
 //  setvbuf(stdout, NULL, _IONBF, 0);
   user_set_temp = DEFAULT_TEMP ;
   plate_temp = 0.0 ;
+  therm_rt = 0.0 ;
   last_count = TIM1->CNT ;
 
   /* USER CODE END 2 */
@@ -160,9 +164,11 @@ int main(void)
     HAL_ADC_Start_DMA(&hadc1, (uint32_t *) adc_results, 3) ;
     HAL_Delay(500) ;
 
-    adc_v = ADC_VDDA * ((float) adc_results[0] / (float) ADC_RANGE) ;
+    adc_v = ADC_VDDA * ((float)adc_results[0] / (float)ADC_RANGE) ;
+    therm_rt = rt_by_ratio((float)adc_results[0] / (float)ADC_RANGE, THERM_R1) ;
+    plate_temp = calculate_temperature(therm_rt, THERM_BETA, THERM_R_T25) ;
     printf("VTherm = %1.3fV (%d)\n\r", adc_v, adc_results[0]) ;
-
+    
     adc_v = ADC_VDDA * ((float) adc_results[1] / (float) ADC_RANGE) ;
     printf("VIntTemp = %1.3fV (%d)\n\r", adc_v, adc_results[1]) ;
 
