@@ -168,6 +168,7 @@ int main(void)
     therm_rt = rt_by_ratio((float)adc_results[0] / (float)ADC_RANGE, THERM_R1) ;
     plate_temp = calculate_temperature(therm_rt, THERM_BETA, THERM_R_T25) ;
     printf("VTherm = %1.3fV (%d)\n\r", adc_v, adc_results[0]) ;
+    printf("Rt = %3.1f  | Tp = %3.1f\n\r", therm_rt, plate_temp) ;
     
     adc_v = ADC_VDDA * ((float) adc_results[1] / (float) ADC_RANGE) ;
     printf("VIntTemp = %1.3fV (%d)\n\r", adc_v, adc_results[1]) ;
@@ -178,8 +179,8 @@ int main(void)
     if((TIM1->CNT >> 2) - last_count) { 
       int32_t change = ((int32_t)(TIM1->CNT >> 2) - last_count) ;
 
-      if(abs(change) < 10) user_set_temp += change * 0.1 ;
-      else user_set_temp += change * 1.0 ;
+      if(abs(change) < 10) user_set_temp += change * 1.0 ;
+      else user_set_temp += change * 5.0 ;
 
       last_count = TIM1->CNT >> 2 ;
 
@@ -188,7 +189,7 @@ int main(void)
     }
 
     LCD_SetPosition(LINE_2, 0) ;
-    snprintf(temp_update, 17, "  % 5.1f  % 5.1f", plate_temp, user_set_temp) ;
+    snprintf(temp_update, 17, "% 3.1f\xb2\x43  % 3.0f\xb2\x43", plate_temp, user_set_temp) ;
     LCD_Print(temp_update) ;
 
 
