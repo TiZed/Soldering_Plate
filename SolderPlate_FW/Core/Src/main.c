@@ -39,8 +39,16 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define ADC_VDDA  (3.3)
+#define ADC_VDDA  (3.3)             // V
 #define ADC_RANGE (4096)
+#define THRM_AVG  (20)
+
+#define INT_TEMP_STEP   (4.3)       // mV
+#define INT_TEMP_V25    (1430.0)    // mV
+
+#define ADC_THRM_CH     (0)
+#define ADC_INTTEMP_CH  (1)
+#define ADC_VREF_CH     (2)
 
 // #define PUTCHAR_PROTOTYPE int __io_putchar(int ch)
 
@@ -58,7 +66,6 @@ DMA_HandleTypeDef hdma_adc1;
 TIM_HandleTypeDef htim1;
 TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim3;
-DMA_HandleTypeDef hdma_tim3_ch4_up;
 
 /* USER CODE BEGIN PV */
 
@@ -73,12 +80,13 @@ static void MX_TIM1_Init(void);
 static void MX_TIM2_Init(void);
 static void MX_TIM3_Init(void);
 /* USER CODE BEGIN PFP */
-
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 volatile uint16_t adc_results[3] ;
+uint16_t thrm_res_buffer[THRM_AVG] ;
+static uint16_t thrm_buf_idx = 0 ;
 
 /* USER CODE END 0 */
 
@@ -89,8 +97,8 @@ volatile uint16_t adc_results[3] ;
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-  float adc_v, plate_temp, user_set_temp ;
-  float therm_rt ;
+  float adc_v = 0, plate_temp, user_set_temp ;
+  float therm_rt, int_temp ;
   char temp_update[17] ;
   int32_t last_count ;
 
@@ -132,9 +140,9 @@ int main(void)
   HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_2) ;
   HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_3) ;
 
-  TIM2->CCR1 = 65000 ;
-  TIM2->CCR2 = 65000 ;
-  TIM2->CCR3 = 27000 ;
+  TIM2->CCR1 = 65000 ; // Orange Encoder LED
+  TIM2->CCR2 = 65000 ; // Blue Encoder LED
+  TIM2->CCR3 = 27000 ; // LCD contrast
 
   HAL_TIM_Encoder_Start(&htim1, TIM_CHANNEL_ALL) ;
   
@@ -153,6 +161,8 @@ int main(void)
   therm_rt = 0.0 ;
   last_count = TIM1->CNT ;
 
+  HAL_TIM_Base_Start_IT(&htim3) ;
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -160,18 +170,31 @@ int main(void)
   while (1)
   {
     printf("-----\n\r") ;
-    HAL_GPIO_TogglePin(BP_LED_GPIO_Port, BP_LED_Pin) ;
-    HAL_ADC_Start_DMA(&hadc1, (uint32_t *) adc_results, 3) ;
-    HAL_Delay(500) ;
+    
+    if(thrm_buf_idx >= THRM_AVG) {
+      float thrm_sum = 0 ;
 
-    adc_v = ADC_VDDA * ((float)adc_results[0] / (float)ADC_RANGE) ;
-    therm_rt = rt_by_ratio((float)adc_results[0] / (float)ADC_RANGE, THERM_R1) ;
-    plate_temp = calculate_temperature(therm_rt, THERM_BETA, THERM_R_T25) ;
-    printf("VTherm = %1.3fV (%d)\n\r", adc_v, adc_results[0]) ;
+      // Average ADC readings
+      for(int i = 0 ; i < THRM_AVG ; i++) thrm_sum += (float)thrm_res_buffer[i] ;
+      thrm_sum /= THRM_AVG ;
+      thrm_buf_idx = 0 ;
+
+      adc_v = ADC_VDDA * (thrm_sum / (float)ADC_RANGE) ;
+
+      therm_rt = rt_by_ratio(thrm_sum / (float)ADC_RANGE, THERM_R1) ;
+      plate_temp = calculate_temperature(therm_rt, THERM_BETA, THERM_R_T25) ;
+
+      LCD_SetPosition(LINE_2, 0) ;
+      snprintf(temp_update, 17, "% 3.1f\xb2\x43  % 3.0f\xb2\x43", plate_temp, user_set_temp) ;
+      LCD_Print(temp_update) ;
+    }
+    
+    printf("VTherm = %1.3fV\n\r", adc_v) ;
     printf("Rt = %3.1f  | Tp = %3.1f\n\r", therm_rt, plate_temp) ;
     
-    adc_v = ADC_VDDA * ((float) adc_results[1] / (float) ADC_RANGE) ;
-    printf("VIntTemp = %1.3fV (%d)\n\r", adc_v, adc_results[1]) ;
+    adc_v = ADC_VDDA * ((float) adc_results[ADC_INTTEMP_CH] / (float) ADC_RANGE) ;
+    int_temp = (INT_TEMP_V25 - adc_v * 1000) / INT_TEMP_STEP + 25 ;
+    printf("IntTemp = %3.1f | VIntTemp = %1.3fV (%d)\n\r", int_temp, adc_v, adc_results[ADC_INTTEMP_CH]) ;
 
     adc_v = ADC_VDDA * ((float) adc_results[2] / (float) ADC_RANGE) ;
     printf("Vref = %1.3fV (%d)\n\r", adc_v, adc_results[2]) ;
@@ -187,12 +210,6 @@ int main(void)
       if(user_set_temp > MAX_TEMP) user_set_temp = MAX_TEMP ;
       if(user_set_temp < 0) user_set_temp = 0 ;
     }
-
-    LCD_SetPosition(LINE_2, 0) ;
-    snprintf(temp_update, 17, "% 3.1f\xb2\x43  % 3.0f\xb2\x43", plate_temp, user_set_temp) ;
-    LCD_Print(temp_update) ;
-
-
   //  CDC_Transmit_FS((uint8_t *) test, 6) ;
     HAL_Delay(1000) ;
     /* USER CODE END WHILE */
@@ -295,6 +312,7 @@ static void MX_ADC1_Init(void)
   */
   sConfig.Channel = ADC_CHANNEL_TEMPSENSOR;
   sConfig.Rank = ADC_REGULAR_RANK_2;
+  sConfig.SamplingTime = ADC_SAMPLETIME_239CYCLES_5;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
   {
     Error_Handler();
@@ -304,6 +322,7 @@ static void MX_ADC1_Init(void)
   */
   sConfig.Channel = ADC_CHANNEL_VREFINT;
   sConfig.Rank = ADC_REGULAR_RANK_3;
+  sConfig.SamplingTime = ADC_SAMPLETIME_7CYCLES_5;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
   {
     Error_Handler();
@@ -446,15 +465,14 @@ static void MX_TIM3_Init(void)
 
   TIM_ClockConfigTypeDef sClockSourceConfig = {0};
   TIM_MasterConfigTypeDef sMasterConfig = {0};
-  TIM_OC_InitTypeDef sConfigOC = {0};
 
   /* USER CODE BEGIN TIM3_Init 1 */
 
   /* USER CODE END TIM3_Init 1 */
   htim3.Instance = TIM3;
-  htim3.Init.Prescaler = 0;
+  htim3.Init.Prescaler = 11;
   htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim3.Init.Period = 65535;
+  htim3.Init.Period = 60000;
   htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim3) != HAL_OK)
@@ -466,25 +484,9 @@ static void MX_TIM3_Init(void)
   {
     Error_Handler();
   }
-  if (HAL_TIM_OC_Init(&htim3) != HAL_OK)
-  {
-    Error_Handler();
-  }
   sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
   sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
   if (HAL_TIMEx_MasterConfigSynchronization(&htim3, &sMasterConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  sConfigOC.OCMode = TIM_OCMODE_TIMING;
-  sConfigOC.Pulse = 0;
-  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
-  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
-  if (HAL_TIM_OC_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  if (HAL_TIM_OC_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_4) != HAL_OK)
   {
     Error_Handler();
   }
@@ -507,9 +509,6 @@ static void MX_DMA_Init(void)
   /* DMA1_Channel1_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Channel1_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(DMA1_Channel1_IRQn);
-  /* DMA1_Channel3_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Channel3_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ(DMA1_Channel3_IRQn);
 
 }
 
@@ -594,6 +593,29 @@ static void MX_GPIO_Init(void)
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
   if (GPIO_Pin == EncButton_Pin) {
     printf("Encoder %ld\n\r", (TIM1->CNT)>>2) ;
+  }
+}
+
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
+  static uint16_t led_counter = 0 ;
+
+  if(htim == &htim3) {
+    led_counter++ ;
+
+    if(led_counter == 100) {
+      HAL_GPIO_TogglePin(BP_LED_GPIO_Port, BP_LED_Pin) ;
+      led_counter = 0 ;
+    }
+
+    if((HAL_ADC_GetState(&hadc1) & HAL_ADC_STATE_REG_BUSY) == 0)
+      HAL_ADC_Start_DMA(&hadc1, (uint32_t *) adc_results, 3) ;
+  }
+}
+
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc){
+  if(hadc == &hadc1) {
+    if(thrm_buf_idx < THRM_AVG)
+      thrm_res_buffer[thrm_buf_idx++] = adc_results[ADC_THRM_CH] ;
   }
 }
 
