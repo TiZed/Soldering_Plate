@@ -26,10 +26,12 @@
 #include "usbd_cdc_if.h"
 
 #include <stdio.h>
+#include <math.h>
 
 #include "lcd16x2.h"
 #include "config.h"
 #include "thermistor.h"
+#include "leds.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -42,6 +44,9 @@
 #define ADC_VDDA  (3.3)             // V
 #define ADC_RANGE (4096)
 #define THRM_AVG  (20)
+
+#define LED_RANGE ((2 << 16) - 1)
+#define LED_RATE  (100)
 
 #define INT_TEMP_STEP   (4.3)       // mV
 #define INT_TEMP_V25    (1430.0)    // mV
@@ -140,8 +145,12 @@ int main(void)
   HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_2) ;
   HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_3) ;
 
-  TIM2->CCR1 = 65000 ; // Orange Encoder LED
-  TIM2->CCR2 = 65000 ; // Blue Encoder LED
+  init_leds(100) ;
+  leds_state_t * orange_led = new_led(16, &(TIM2->CCR1)) ;
+  leds_state_t * blue_led = new_led(16, &(TIM2->CCR2)) ;
+
+  set_led(blue_led, 60, 500) ;
+
   TIM2->CCR3 = 27000 ; // LCD contrast
 
   HAL_TIM_Encoder_Start(&htim1, TIM_CHANNEL_ALL) ;
@@ -160,6 +169,8 @@ int main(void)
   plate_temp = 0.0 ;
   therm_rt = 0.0 ;
   last_count = TIM1->CNT ;
+
+  uint8_t update_display = 1 ; 
 
   HAL_TIM_Base_Start_IT(&htim3) ;
 
@@ -184,9 +195,7 @@ int main(void)
       therm_rt = rt_by_ratio(thrm_sum / (float)ADC_RANGE, THERM_R1) ;
       plate_temp = calculate_temperature(therm_rt, THERM_BETA, THERM_R_T25) ;
 
-      LCD_SetPosition(LINE_2, 0) ;
-      snprintf(temp_update, 17, "% 3.1f\xb2\x43  % 3.0f\xb2\x43", plate_temp, user_set_temp) ;
-      LCD_Print(temp_update) ;
+      update_display = 1 ; 
     }
     
     printf("VTherm = %1.3fV\n\r", adc_v) ;
@@ -209,6 +218,16 @@ int main(void)
 
       if(user_set_temp > MAX_TEMP) user_set_temp = MAX_TEMP ;
       if(user_set_temp < 0) user_set_temp = 0 ;
+
+      update_display = 1 ; 
+    }
+
+    if(update_display) {
+      LCD_SetPosition(LINE_2, 0) ;
+      snprintf(temp_update, 17, "% 3.1f\xb2\x43  % 3.0f\xb2\x43 ", plate_temp, user_set_temp) ;
+      LCD_Print(temp_update) ;
+
+      update_display = 0 ;
     }
   //  CDC_Transmit_FS((uint8_t *) test, 6) ;
     HAL_Delay(1000) ;
@@ -610,6 +629,8 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
     if((HAL_ADC_GetState(&hadc1) & HAL_ADC_STATE_REG_BUSY) == 0)
       HAL_ADC_Start_DMA(&hadc1, (uint32_t *) adc_results, 3) ;
   }
+
+  update_leds() ;
 }
 
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc){
