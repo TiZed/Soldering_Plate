@@ -26,6 +26,12 @@ static uint16_t DispRW, DispRS, DispE ;
 static uint16_t DispD0, DispD1, DispD2, DispD3 ;
 static uint16_t DispD4, DispD5, DispD6, DispD7 ;
 
+/**
+  * @brief Write to command or data to LCD
+  * @param op: Select command (OP_CMD), or data (OP_DATA) operation.
+  * @param data: Value to write.
+  * @retval void
+  */
 void LCD_write(OP_Type op, uint8_t data) {
   uint32_t odr = DispRS * op ;
 
@@ -71,6 +77,16 @@ void LCD_write(OP_Type op, uint8_t data) {
   }
 }
 
+/**
+  * @brief Initialize LCD
+  * @param lcdport: GPIO port connected to LCD.
+  * @param if_type: Interface type, 4bit (IF_4BIT) or 8bit (IF_8BIT).
+  * @param disp_rw: R~W pin.
+  * @param disp_rs: R~S pin.
+  * @param disp_e: Enable pin.
+  * @param ...: Data pins, 4 or 8 depending on interface.
+  * @retval void
+  */
 void LCD_Init(GPIO_TypeDef *lcdport, IF_Type if_type, 
               uint16_t disp_rw, uint16_t disp_rs, uint16_t disp_e, ...) 
 {
@@ -146,6 +162,11 @@ void LCD_Init(GPIO_TypeDef *lcdport, IF_Type if_type,
   LCD_write(OP_CMD, ENTRY_MODE_SET | MOVE_CUR_RIGHT | DONT_SHIFT_D) ;
 }
 
+/**
+  * @brief Print on LCD
+  * @param str: String to display.
+  * @retval void
+  */
 void LCD_Print(char * str) {
   uint32_t i = 0 ;
 
@@ -154,12 +175,22 @@ void LCD_Print(char * str) {
   }
 }
 
+/**
+  * @brief Set cursor position on LCD
+  * @param line: First line (LINE_1), or second line (LINE_2).
+  * @param col: Column position (0~15).
+  * @retval void
+  */
 void LCD_SetPosition(Line_Num_t line, uint8_t col) {
   if(col > 0x0f) return ;
   LCD_write(OP_CMD, DDRAM_ADDRESS | line | col) ;
   HAL_Delay(2) ;
 }
 
+/**
+  * @brief Clear LCD
+  * @retval void
+  */
 void LCD_Clear() {
   LCD_write(OP_CMD, CLEAR_DISPLAY) ;
   HAL_Delay(2) ;
