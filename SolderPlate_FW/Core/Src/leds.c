@@ -47,6 +47,7 @@ leds_state_t * new_led(uint8_t pwm_bits, volatile uint32_t * pwm_register) {
     if(num_of_leds == MAX_LEDS) return NULL ;
 
     leds_state_t * led = malloc(sizeof(leds_state_t)) ;
+    if(led == NULL) return NULL ;
 
     led->pwm_range = (2 << (pwm_bits-1)) - 1 ;
     led->pwm_percent = led->pwm_range / 100 ;

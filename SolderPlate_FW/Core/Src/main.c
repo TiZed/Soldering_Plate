@@ -32,6 +32,7 @@
 #include "config.h"
 #include "thermistor.h"
 #include "leds.h"
+#include "pid.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -92,6 +93,9 @@ static void MX_TIM3_Init(void);
 volatile uint16_t adc_results[3] ;
 uint16_t thrm_res_buffer[THRM_AVG] ;
 static uint16_t thrm_buf_idx = 0 ;
+static uint16_t ssr_on_counter = 0 ;
+static float plate_set_temp = 25.0 ; 
+static float user_set_temp = DEFAULT_TEMP ; 
 
 /* USER CODE END 0 */
 
@@ -102,7 +106,7 @@ static uint16_t thrm_buf_idx = 0 ;
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-  float adc_v = 0, plate_temp, user_set_temp ;
+  float adc_v = 0, plate_temp ;
   float therm_rt, int_temp ;
   char temp_update[17] ;
   int32_t last_count ;
@@ -165,10 +169,11 @@ int main(void)
 //           1234567890123456
   
 //  setvbuf(stdout, NULL, _IONBF, 0);
-  user_set_temp = DEFAULT_TEMP ;
   plate_temp = 0.0 ;
   therm_rt = 0.0 ;
   last_count = TIM1->CNT ;
+
+  pid_config_t * plate_pid = init_pid(20, 0, 0, 0, 200) ;
 
   uint8_t update_display = 1 ; 
 
@@ -180,7 +185,7 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-    printf("-----\n\r") ;
+  //  printf("-----\n\r") ;
     
     if(thrm_buf_idx >= THRM_AVG) {
       float thrm_sum = 0 ;
@@ -192,22 +197,31 @@ int main(void)
 
       adc_v = ADC_VDDA * (thrm_sum / (float)ADC_RANGE) ;
 
+      // Calculate plate temperature
       therm_rt = rt_by_ratio(thrm_sum / (float)ADC_RANGE, THERM_R1) ;
       plate_temp = calculate_temperature(therm_rt, THERM_BETA, THERM_R_T25) ;
 
+      // Update PID and set plate SSR on time
+      double pid_res = update_pid(plate_pid, plate_set_temp - plate_temp, plate_temp) ;
+      if(pid_res <= 0) ssr_on_counter = 0 ;
+      else ssr_on_counter = (uint16_t)pid_res ; 
+
       update_display = 1 ; 
+
+      printf("-----\n\r") ;
+      printf("VTherm = %1.3fV\n\r", adc_v) ;
+      printf("Rt = %3.1f  | Tp = %3.1f\n\r", therm_rt, plate_temp) ;
+      printf("SSR on counter: %d\n\r", ssr_on_counter) ;
     }
     
-    printf("VTherm = %1.3fV\n\r", adc_v) ;
-    printf("Rt = %3.1f  | Tp = %3.1f\n\r", therm_rt, plate_temp) ;
-    
-    adc_v = ADC_VDDA * ((float) adc_results[ADC_INTTEMP_CH] / (float) ADC_RANGE) ;
-    int_temp = (INT_TEMP_V25 - adc_v * 1000) / INT_TEMP_STEP + 25 ;
-    printf("IntTemp = %3.1f | VIntTemp = %1.3fV (%d)\n\r", int_temp, adc_v, adc_results[ADC_INTTEMP_CH]) ;
+  //  adc_v = ADC_VDDA * ((float) adc_results[ADC_INTTEMP_CH] / (float) ADC_RANGE) ;
+  //  int_temp = (INT_TEMP_V25 - adc_v * 1000) / INT_TEMP_STEP + 25 ;
+  //  printf("IntTemp = %3.1f | VIntTemp = %1.3fV (%d)\n\r", int_temp, adc_v, adc_results[ADC_INTTEMP_CH]) ;
 
-    adc_v = ADC_VDDA * ((float) adc_results[2] / (float) ADC_RANGE) ;
-    printf("Vref = %1.3fV (%d)\n\r", adc_v, adc_results[2]) ;
+  //  adc_v = ADC_VDDA * ((float) adc_results[2] / (float) ADC_RANGE) ;
+  //  printf("Vref = %1.3fV (%d)\n\r", adc_v, adc_results[2]) ;
 
+    // Update set temperature value
     if((TIM1->CNT >> 2) - last_count) { 
       int32_t change = ((int32_t)(TIM1->CNT >> 2) - last_count) ;
 
@@ -222,6 +236,10 @@ int main(void)
       update_display = 1 ; 
     }
 
+    if(ssr_on_counter > 0) HAL_GPIO_WritePin(SSR_GPIO_Port, SSR_Pin, GPIO_PIN_SET) ;
+    else HAL_GPIO_WritePin(SSR_GPIO_Port, SSR_Pin, GPIO_PIN_RESET) ;
+
+    // Update LCD 
     if(update_display) {
       LCD_SetPosition(LINE_2, 0) ;
       snprintf(temp_update, 17, "% 3.1f\xb2\x43  % 3.0f\xb2\x43 ", plate_temp, user_set_temp) ;
@@ -230,7 +248,7 @@ int main(void)
       update_display = 0 ;
     }
   //  CDC_Transmit_FS((uint8_t *) test, 6) ;
-    HAL_Delay(1000) ;
+//    HAL_Delay(1000) ;
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -611,7 +629,7 @@ static void MX_GPIO_Init(void)
 /* USER CODE BEGIN 4 */
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
   if (GPIO_Pin == EncButton_Pin) {
-    printf("Encoder %ld\n\r", (TIM1->CNT)>>2) ;
+    plate_set_temp = user_set_temp ;
   }
 }
 
@@ -619,18 +637,22 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
   static uint16_t led_counter = 0 ;
 
   if(htim == &htim3) {
-    led_counter++ ;
-
-    if(led_counter == 100) {
+    // Toggle onboard LED
+    if(++led_counter == 100) {
       HAL_GPIO_TogglePin(BP_LED_GPIO_Port, BP_LED_Pin) ;
       led_counter = 0 ;
     }
 
+    // Do ADC capture
     if((HAL_ADC_GetState(&hadc1) & HAL_ADC_STATE_REG_BUSY) == 0)
       HAL_ADC_Start_DMA(&hadc1, (uint32_t *) adc_results, 3) ;
-  }
 
-  update_leds() ;
+    // Updates plate SSR on counter
+    if(ssr_on_counter > 0) ssr_on_counter-- ;
+
+    // Update LEDs state
+    update_leds() ;
+  }
 }
 
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc){

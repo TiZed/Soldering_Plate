@@ -40,6 +40,7 @@ Core/Src/main.c \
 Core/Src/lcd16x2.c \
 Core/Src/thermistor.c \
 Core/Src/leds.c \
+Core/Src/pid.c \
 Core/Src/usb_redirect.c \
 Core/Src/stm32f1xx_it.c \
 Core/Src/stm32f1xx_hal_msp.c \
