@@ -106,7 +106,7 @@ void Error_Handler(void);
 /* USER CODE BEGIN Private defines */
 #define Disp_Port  GPIOB
 
-typedef enum {ERROR = 0, SAFE_TEMP, HOT_TEMP} device_state_t ;
+typedef enum {DEV_ERROR = 0, SAFE_TEMP, HOT_TEMP} device_state_t ;
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus

@@ -81,7 +81,9 @@ void LCD_Init(GPIO_TypeDef *lcdport, IF_Type if_type,
               uint16_t disp_rw, uint16_t disp_rs, uint16_t disp_e, ...) ;
 void LCD_Print(char * str) ;
 void LCD_SetPosition(Line_Num_t line, uint8_t col) ;
+void LCD_SetCustomChar(uint8_t pattern, uint8_t * char_data) ;
 void LCD_Clear() ;
+void LCD_Wait() ;
 
 #ifdef __cplusplus
 }

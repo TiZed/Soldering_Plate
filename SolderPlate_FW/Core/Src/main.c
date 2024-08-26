@@ -44,7 +44,7 @@
 /* USER CODE BEGIN PD */
 #define ADC_VDDA  (3.3)             // V
 #define ADC_RANGE (4096)
-#define THRM_AVG  (20)
+#define THRM_AVG  (40)
 
 #define LED_RANGE ((2 << 16) - 1)
 #define LED_RATE  (100)
@@ -92,10 +92,14 @@ static void MX_TIM3_Init(void);
 /* USER CODE BEGIN 0 */
 volatile uint16_t adc_results[3] ;
 uint16_t thrm_res_buffer[THRM_AVG] ;
+
 static uint16_t thrm_buf_idx = 0 ;
 static uint16_t ssr_on_counter = 0 ;
 static float plate_set_temp = 25.0 ; 
 static float user_set_temp = DEFAULT_TEMP ; 
+
+uint8_t ssr_off_char[8] = {0x1f, 0x11, 0x11, 0x11, 0x11, 0x11, 0x1f, 0x00} ;
+uint8_t ssr_on_char[8]  = {0x1f, 0x1f, 0x1f, 0x1f, 0x1f, 0x1f, 0x1f, 0x00} ;
 
 /* USER CODE END 0 */
 
@@ -153,7 +157,8 @@ int main(void)
   leds_state_t * orange_led = new_led(16, &(TIM2->CCR1)) ;
   leds_state_t * blue_led = new_led(16, &(TIM2->CCR2)) ;
 
-  set_led(blue_led, 60, 500) ;
+  set_led(blue_led, 20, 500) ;
+  printf("Start!\n\r") ;
 
   TIM2->CCR3 = 27000 ; // LCD contrast
 
@@ -164,8 +169,11 @@ int main(void)
            DispD0_Pin, DispD1_Pin, DispD2_Pin, DispD3_Pin, 
            DispD4_Pin, DispD5_Pin, DispD6_Pin, DispD7_Pin) ;
 
+  LCD_SetCustomChar(1, ssr_off_char) ;
+  LCD_SetCustomChar(2, ssr_on_char) ;
+
   LCD_SetPosition(LINE_1, 0) ;
-  LCD_Print("  Temp.   Set") ;
+  LCD_Print("  Temp.   Set  \x01") ;
 //           1234567890123456
   
 //  setvbuf(stdout, NULL, _IONBF, 0);
@@ -206,12 +214,7 @@ int main(void)
       if(pid_res <= 0) ssr_on_counter = 0 ;
       else ssr_on_counter = (uint16_t)pid_res ; 
 
-      update_display = 1 ; 
-
-      printf("-----\n\r") ;
-      printf("VTherm = %1.3fV\n\r", adc_v) ;
-      printf("Rt = %3.1f  | Tp = %3.1f\n\r", therm_rt, plate_temp) ;
-      printf("SSR on counter: %d\n\r", ssr_on_counter) ;
+      update_display = 1 ;
     }
     
   //  adc_v = ADC_VDDA * ((float) adc_results[ADC_INTTEMP_CH] / (float) ADC_RANGE) ;
@@ -236,14 +239,27 @@ int main(void)
       update_display = 1 ; 
     }
 
-    if(ssr_on_counter > 0) HAL_GPIO_WritePin(SSR_GPIO_Port, SSR_Pin, GPIO_PIN_SET) ;
-    else HAL_GPIO_WritePin(SSR_GPIO_Port, SSR_Pin, GPIO_PIN_RESET) ;
+    if(ssr_on_counter > 0) {
+      LCD_SetPosition(LINE_1, 15) ;
+      LCD_Print("\x02") ;
+      HAL_GPIO_WritePin(SSR_GPIO_Port, SSR_Pin, GPIO_PIN_SET) ;
+    }
+    else {
+      LCD_SetPosition(LINE_1, 15) ;
+      LCD_Print("\x01") ;
+      HAL_GPIO_WritePin(SSR_GPIO_Port, SSR_Pin, GPIO_PIN_RESET) ;
+    }
 
     // Update LCD 
     if(update_display) {
       LCD_SetPosition(LINE_2, 0) ;
       snprintf(temp_update, 17, "% 3.1f\xb2\x43  % 3.0f\xb2\x43 ", plate_temp, user_set_temp) ;
       LCD_Print(temp_update) ;
+
+      printf("-----\n\r") ;
+      printf("VTherm = %1.3fV\n\r", adc_v) ;
+      printf("Rt = %3.1f  | Tp = %3.1f\n\r", therm_rt, plate_temp) ;
+      printf("SSR on counter: %d\n\r", ssr_on_counter) ;
 
       update_display = 0 ;
     }

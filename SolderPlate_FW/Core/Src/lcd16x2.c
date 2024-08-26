@@ -188,10 +188,57 @@ void LCD_SetPosition(Line_Num_t line, uint8_t col) {
 }
 
 /**
+  * @brief Set custom character
+  * @param pattern: Pattern number to store (0-7)
+  * @param char_data: Character bitmap pattern 8 x uint8
+  * @retval void
+  */
+void LCD_SetCustomChar(uint8_t pattern, uint8_t * char_data) {
+  if(pattern > 7) return ;
+  LCD_write(OP_CMD, CGRAM_ADDRESS + (pattern << 3)) ;
+  LCD_Wait() ;
+  for(uint8_t i = 0 ; i < 8 ; i++) {
+    LCD_write(OP_DATA, char_data[i]) ;
+    LCD_Wait() ;
+  } 
+}
+
+/**
   * @brief Clear LCD
   * @retval void
   */
 void LCD_Clear() {
   LCD_write(OP_CMD, CLEAR_DISPLAY) ;
   HAL_Delay(2) ;
+}
+
+
+/**
+  * @brief Wait on LCD busy flag
+  * @retval void
+  */
+void LCD_Wait() {
+  uint32_t data ;
+  uint8_t busy_flag = 1 ;
+
+  HAL_GPIO_WritePin(LCDPort, DispRW, GPIO_PIN_SET) ;
+  HAL_GPIO_WritePin(LCDPort, DispRS, GPIO_PIN_RESET) ;
+
+  while(busy_flag) {
+    HAL_Delay(E_DELAY_MS) ;
+    HAL_GPIO_WritePin(LCDPort, DispE, GPIO_PIN_SET) ;
+    HAL_Delay(E_DELAY_MS) ;
+    HAL_GPIO_WritePin(LCDPort, DispE, GPIO_PIN_RESET) ;
+    HAL_Delay(E_DELAY_MS) ;
+
+    data = LCDPort->IDR ;
+    busy_flag = (data & DispD7) ? 1:0 ;
+
+    if(mode_8b_4b == IF_4BIT) {
+      HAL_GPIO_WritePin(LCDPort, DispE, GPIO_PIN_SET) ;
+      HAL_Delay(E_DELAY_MS) ;
+      HAL_GPIO_WritePin(LCDPort, DispE, GPIO_PIN_RESET) ;
+      HAL_Delay(E_DELAY_MS) ;
+    }
+  }
 }

@@ -21,15 +21,15 @@ extern "C" {
 #endif
 
 typedef struct {
-    double p_gain ;
-    double i_gain ;
-    double d_gain ;
+    double p_gain ; // Product coefficient 
+    double i_gain ; // Integral coefficient  
+    double d_gain ; // Derivative coefficient
 
-    double i_min ;
-    double i_max ;
+    double i_min ;  // Min. integral process value
+    double i_max ;  // Max. integral process value
 
-    double i_state ;
-    double prev_state ;
+    double i_state ;  // Integral current state
+    double prev_state ; // Previous state
 } pid_config_t ;
 
 pid_config_t * init_pid(double p_gain, double i_gain, double d_gain, double i_min, double i_max) ;
