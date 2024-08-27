@@ -109,6 +109,7 @@ uint8_t ssr_on_char[8]  = {0x1f, 0x1f, 0x1f, 0x1f, 0x1f, 0x1f, 0x1f, 0x00} ;
   */
 int main(void)
 {
+
   /* USER CODE BEGIN 1 */
   float adc_v = 0, plate_temp ;
   float therm_rt, int_temp ;
