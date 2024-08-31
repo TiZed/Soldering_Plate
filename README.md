@@ -1,10 +1,10 @@
 ## Soldering Plate Device
 
-This repository holds the mechnical and circuit design for a soldering plate device, built around cheap heating plates that can be bought online.
+This repository holds the mechanical, circuit design and firmware for a soldering plate device, built around cheap heating plates that can be bought online.
 
 The enclosure, pictured below, is designed to be 3D printed. Some of the STLs are available in the repository.
 
-There are two circuits, one for supplying 5V from mains to the control circuits. The second is a control circuit, for mounting an encoder for user input.
+There are two circuits, one for supplying 5V from mains to the control circuits. The second is a control circuit, for mounting an encoder for user input. Control is done using a STM32F103 board known as the "Blue Pill". 
 
 <h3 align="center">
   <img src="https://github.com/TiZed/Soldering_Plate/blob/main/images/enclosure_sim.png" alt="Enclosure render">
