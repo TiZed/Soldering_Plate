@@ -10,7 +10,7 @@ target: SolderPlate_FW
 # Can be C or C++
 language: C
 
-optimization: Og
+optimization: Os
 
 # MCU settings
 targetMCU: stm32f1x
@@ -45,7 +45,10 @@ assemblyFlags:
   - -fdata-sections
   - -ffunction-sections
   
-linkerFlags: [-u _printf_float]
+linkerFlags: 
+  - -u _printf_float
+  - -Wl,--print-memory-usage
+
 
 # libraries to be included. The -l prefix to the library will be automatically added.
 libraries: 

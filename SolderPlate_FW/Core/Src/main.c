@@ -101,6 +101,17 @@ static float user_set_temp = DEFAULT_TEMP ;
 uint8_t ssr_off_char[8] = {0x1f, 0x11, 0x11, 0x11, 0x11, 0x11, 0x1f, 0x00} ;
 uint8_t ssr_on_char[8]  = {0x1f, 0x1f, 0x1f, 0x1f, 0x1f, 0x1f, 0x1f, 0x00} ;
 
+extern uint32_t _estack;
+
+// Reboots the system into the bootloader, making sure
+// it enters in DFU mode.
+static inline void reboot_into_bootloader() {
+	uint64_t * ptr = (uint64_t*)&_estack;
+	*ptr = 0xDEADBEEFCC00FFEEULL;
+
+  HAL_NVIC_SystemReset() ;
+}
+
 /* USER CODE END 0 */
 
 /**
@@ -115,6 +126,7 @@ int main(void)
   float therm_rt, int_temp ;
   char temp_update[17] ;
   int32_t last_count ;
+  
 
   /* USER CODE END 1 */
 
@@ -257,11 +269,12 @@ int main(void)
       snprintf(temp_update, 17, "% 3.1f\xb2\x43  % 3.0f\xb2\x43 ", plate_temp, user_set_temp) ;
       LCD_Print(temp_update) ;
 
+/*
       printf("-----\n\r") ;
       printf("VTherm = %1.3fV\n\r", adc_v) ;
       printf("Rt = %3.1f  | Tp = %3.1f\n\r", therm_rt, plate_temp) ;
       printf("SSR on counter: %d\n\r", ssr_on_counter) ;
-
+*/
       update_display = 0 ;
     }
   //  CDC_Transmit_FS((uint8_t *) test, 6) ;
@@ -681,6 +694,11 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc){
 
 
 /* USER CODE END 4 */
+
+void USB_CDC_RxHandler(uint8_t* Buf, uint32_t Len)
+{
+    CDC_Transmit_FS(Buf, Len) ;
+}
 
 /**
   * @brief  This function is executed in case of error occurrence.

@@ -107,6 +107,8 @@ void Error_Handler(void);
 #define Disp_Port  GPIOB
 
 typedef enum {DEV_ERROR = 0, SAFE_TEMP, HOT_TEMP} device_state_t ;
+
+void USB_CDC_RxHandler(uint8_t *, uint32_t) ;
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus
