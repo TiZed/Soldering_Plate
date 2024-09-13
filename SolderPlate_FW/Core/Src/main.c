@@ -33,6 +33,7 @@
 #include "thermistor.h"
 #include "leds.h"
 #include "pid.h"
+#include "cli.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -697,6 +698,7 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc){
 
 void USB_CDC_RxHandler(uint8_t* Buf, uint32_t Len)
 {
+    
     CDC_Transmit_FS(Buf, Len) ;
 }
 

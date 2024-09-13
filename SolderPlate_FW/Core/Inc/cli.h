@@ -21,10 +21,15 @@
 extern "C" {
 #endif
 
-#define UP_KEY      "\x1b[A"
-#define DOWN_KEY    "\x1b[B"
-#define RIGHT_KEY   "\x1b[C"
-#define LEFT_KEY    "\x1b[D"
+#define CMD_SIZE      64
+#define CMDS_MAX_ARGS 10
+#define HISTORY_LEN   20
+
+#define KEY_CHAR    '\e'
+#define UP_KEY      'A'
+#define DOWN_KEY    'B'
+#define RIGHT_KEY   'C'
+#define LEFT_KEY    'D'
 
 #define BACKSPACE_KEY   '\b'
 #define ENTER_KEY       '\r'
@@ -32,6 +37,7 @@ extern "C" {
 #define CLI_CLEAR_FORMAT    "\x1b[0m"
 
 void cli_init() ;
+void cli_input(const char *) ;
 void cli_exec() ;
 
 #ifdef __cplusplus
