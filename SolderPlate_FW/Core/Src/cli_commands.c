@@ -15,8 +15,10 @@
 */
 
 #include <string.h>
+#include <stdio.h>
 
-#include <cli_commands.h>
+#include "cli_commands.h"
+#include "reset.h"
 
 s_cmd commands_list[] = {
     {"reset",   cmd_reset,  0, 0},
@@ -24,6 +26,10 @@ s_cmd commands_list[] = {
 } ;
 
 unsigned int cmd_reset(int argc, char **argv) {
-    NVIC_SystemReset() ;
+    if (argc > 0)
+      if (strcmp(argv[1], "bootloader")) {
+        reset_to_bootloader() ;
+      }
+    else reset() ;
     return 1 ;
 }

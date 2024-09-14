@@ -7,7 +7,7 @@
   ******************************************************************************
   * @attention
   *
-  * Copyright (c) 2023 TiZed.
+  * Copyright (c) 2024 TiZed.
   * All rights reserved.
   *
   *
@@ -38,7 +38,7 @@ extern "C" {
 
 void cli_init() ;
 void cli_input(const char *) ;
-void cli_exec() ;
+void cli_exec(char *) ;
 
 #ifdef __cplusplus
 }

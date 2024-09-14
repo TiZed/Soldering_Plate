@@ -38,4 +38,4 @@ unsigned int cmd_reset(int argc, char **argv) ;
 }
 #endif
 
-#endif /* __CLI_H */
+#endif /* __CLI_COMMANDS_H */

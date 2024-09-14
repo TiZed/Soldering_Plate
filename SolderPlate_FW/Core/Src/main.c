@@ -70,11 +70,23 @@
 ADC_HandleTypeDef hadc1;
 DMA_HandleTypeDef hdma_adc1;
 
+IWDG_HandleTypeDef hiwdg;
+
 TIM_HandleTypeDef htim1;
 TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim3;
 
 /* USER CODE BEGIN PV */
+
+/*
+Timer1 - Encoder input
+Timer2 - PWM generator: 
+         Ch1 - Orange Encoder LED
+         Ch2 - Blue Encoder LED
+         Ch3 - LCD contrast
+Timer3 - 10msec clock
+
+*/
 
 /* USER CODE END PV */
 
@@ -86,6 +98,7 @@ static void MX_ADC1_Init(void);
 static void MX_TIM1_Init(void);
 static void MX_TIM2_Init(void);
 static void MX_TIM3_Init(void);
+static void MX_IWDG_Init(void);
 /* USER CODE BEGIN PFP */
 /* USER CODE END PFP */
 
@@ -96,22 +109,16 @@ uint16_t thrm_res_buffer[THRM_AVG] ;
 
 static uint16_t thrm_buf_idx = 0 ;
 static uint16_t ssr_on_counter = 0 ;
-static float plate_set_temp = 25.0 ; 
+static float plate_set_temp = DEFAULT_TEMP ; 
 static float user_set_temp = DEFAULT_TEMP ; 
 
 uint8_t ssr_off_char[8] = {0x1f, 0x11, 0x11, 0x11, 0x11, 0x11, 0x1f, 0x00} ;
 uint8_t ssr_on_char[8]  = {0x1f, 0x1f, 0x1f, 0x1f, 0x1f, 0x1f, 0x1f, 0x00} ;
 
-extern uint32_t _estack;
+leds_state_t * orange_led ;
+leds_state_t * blue_led ;
 
-// Reboots the system into the bootloader, making sure
-// it enters in DFU mode.
-static inline void reboot_into_bootloader() {
-	uint64_t * ptr = (uint64_t*)&_estack;
-	*ptr = 0xDEADBEEFCC00FFEEULL;
-
-  HAL_NVIC_SystemReset() ;
-}
+static uint32_t sec_ticker = 0 ;
 
 /* USER CODE END 0 */
 
@@ -155,6 +162,7 @@ int main(void)
   MX_TIM2_Init();
   MX_USB_DEVICE_Init();
   MX_TIM3_Init();
+  MX_IWDG_Init();
   /* USER CODE BEGIN 2 */
 
   HAL_ADCEx_Calibration_Start(&hadc1) ;
@@ -168,11 +176,12 @@ int main(void)
   HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_3) ;
 
   init_leds(100) ;
-  leds_state_t * orange_led = new_led(16, &(TIM2->CCR1)) ;
-  leds_state_t * blue_led = new_led(16, &(TIM2->CCR2)) ;
+  orange_led = new_led(16, &(TIM2->CCR1)) ;
+  blue_led = new_led(16, &(TIM2->CCR2)) ;
 
   set_led(blue_led, 20, 500) ;
   printf("Start!\n\r") ;
+  HAL_IWDG_Refresh(&hiwdg) ;
 
   TIM2->CCR3 = 27000 ; // LCD contrast
 
@@ -248,7 +257,7 @@ int main(void)
       last_count = TIM1->CNT >> 2 ;
 
       if(user_set_temp > MAX_TEMP) user_set_temp = MAX_TEMP ;
-      if(user_set_temp < 0) user_set_temp = 0 ;
+      if(user_set_temp < MIN_TEMP) user_set_temp = MIN_TEMP ;
 
       update_display = 1 ; 
     }
@@ -266,10 +275,11 @@ int main(void)
 
     // Update LCD 
     if(update_display) {
+      HAL_IWDG_Refresh(&hiwdg) ;
+
       LCD_SetPosition(LINE_2, 0) ;
       snprintf(temp_update, 17, "% 3.1f\xb2\x43  % 3.0f\xb2\x43 ", plate_temp, user_set_temp) ;
       LCD_Print(temp_update) ;
-
 /*
       printf("-----\n\r") ;
       printf("VTherm = %1.3fV\n\r", adc_v) ;
@@ -300,10 +310,11 @@ void SystemClock_Config(void)
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_LSI|RCC_OSCILLATORTYPE_HSE;
   RCC_OscInitStruct.HSEState = RCC_HSE_ON;
   RCC_OscInitStruct.HSEPredivValue = RCC_HSE_PREDIV_DIV1;
   RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+  RCC_OscInitStruct.LSIState = RCC_LSI_ON;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
   RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL9;
@@ -398,6 +409,34 @@ static void MX_ADC1_Init(void)
   /* USER CODE BEGIN ADC1_Init 2 */
 
   /* USER CODE END ADC1_Init 2 */
+
+}
+
+/**
+  * @brief IWDG Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_IWDG_Init(void)
+{
+
+  /* USER CODE BEGIN IWDG_Init 0 */
+
+  /* USER CODE END IWDG_Init 0 */
+
+  /* USER CODE BEGIN IWDG_Init 1 */
+
+  /* USER CODE END IWDG_Init 1 */
+  hiwdg.Instance = IWDG;
+  hiwdg.Init.Prescaler = IWDG_PRESCALER_256;
+  hiwdg.Init.Reload = 4095;
+  if (HAL_IWDG_Init(&hiwdg) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN IWDG_Init 2 */
+
+  /* USER CODE END IWDG_Init 2 */
 
 }
 
@@ -671,6 +710,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
     // Toggle onboard LED
     if(++led_counter == 100) {
       HAL_GPIO_TogglePin(BP_LED_GPIO_Port, BP_LED_Pin) ;
+      sec_ticker += 1 ;
       led_counter = 0 ;
     }
 
@@ -693,14 +733,18 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc){
   }
 }
 
-
-/* USER CODE END 4 */
-
 void USB_CDC_RxHandler(uint8_t* Buf, uint32_t Len)
 {
-    
-    CDC_Transmit_FS(Buf, Len) ;
+    char cmd_str[CMD_SIZE] ;
+    memcpy(cmd_str, Buf, Len) ;
+    for(int32_t i = Len ; i < CMD_SIZE ; i++) cmd_str[i] = '\0' ;
+    printf("%s\n", cmd_str) ;
+
+    cli_input(cmd_str) ;
 }
+
+
+/* USER CODE END 4 */
 
 /**
   * @brief  This function is executed in case of error occurrence.
@@ -710,6 +754,9 @@ void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
   /* User can add his own implementation to report the HAL error return state */
+
+  set_led(blue_led, 0, 500) ;
+  set_led(orange_led, 20, 500) ;
   __disable_irq();
   while (1)
   {

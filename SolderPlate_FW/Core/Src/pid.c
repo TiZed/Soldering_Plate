@@ -22,8 +22,8 @@
   * @param p_gain: Proportional gain value.
   * @param i_gain: Integral gain value.
   * @param d_gain: Differential gain value.
-  * @param i_min: Integral max. value limit.
-  * @param i_max: Integral min. value limit
+  * @param i_min: Integral min. value limit.
+  * @param i_max: Integral max. value limit
   * @retval pid_config_t, PID control configuration and state
   */
 pid_config_t * init_pid(double p_gain, double i_gain, double d_gain, double i_min, double i_max) {

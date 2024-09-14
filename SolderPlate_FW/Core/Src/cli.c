@@ -7,7 +7,7 @@
   ******************************************************************************
   * @attention
   *
-  * Copyright (c) 2023 TiZed.
+  * Copyright (c) 2024 TiZed.
   * All rights reserved.
   *
   *
@@ -26,8 +26,10 @@ static char history[HISTORY_LEN][CMD_SIZE] ;
 static unsigned int cmd_i = 0 ; 
 static int hist_pos = -1 ;
 
+static char prompt[] = "\n\e[0m\r\e[K\e[1m# >\e[22m" ; 
+
 void cli_init() {
-  printf("\e[0m\r\e[K\e[1m# >\e[22m") ;
+  printf(prompt) ;
 }
 
 void cli_input(const char * u_in) {
@@ -39,7 +41,7 @@ void cli_input(const char * u_in) {
         cmd_buffer[cmd_i] = '\0' ;
         cmd_i = 0 ;
         printf("\n") ;
-        cli_exec(cmd_buffer) ;
+//        cli_exec(cmd_buffer) ;
         break ;
       case BACKSPACE_KEY:
         if (cmd_i > 0) {
@@ -56,7 +58,6 @@ void cli_input(const char * u_in) {
           case DOWN_KEY:
             break ;
           case LEFT_KEY:
-
             break ;
           case RIGHT_KEY:
             break ;
@@ -70,7 +71,7 @@ void cli_input(const char * u_in) {
   }
 }
 
-void cli_exec(const char * cmd)
+void cli_exec(char * cmd)
 {
   int i = 0 ;
 
@@ -83,13 +84,10 @@ void cli_exec(const char * cmd)
     argv[argc++] = &cmd[pos] ; 
     *loc = '\0' ; 
     pos += (loc - &cmd[pos]) ;
-
   }
 
-
-
   while(commands_list[i].cmd_str) {
-    if(strstr(cmd, commands_list[i].cmd_str) != NULL) {
+    if(strncmp(argv[0], commands_list[i].cmd_str, CMD_SIZE) == 0) {
       commands_list[i].cmd_ptr(argc, argv) ;
     }
     else {
@@ -97,7 +95,6 @@ void cli_exec(const char * cmd)
     }
   }
 
-  printf("\n\e[0m\r\e[K\e[1m# >\e[22m") ;
-
+  printf(prompt) ;
 }
 
