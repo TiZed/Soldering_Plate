@@ -17,84 +17,112 @@
 #include <string.h>
 #include <stdio.h>
 
+#include "stm32f1xx_hal.h"
+
 #include "cli.h" 
 #include "cli_commands.h"
+#include "state.h"
 
-static char cmd_buffer[CMD_SIZE] ;
-static char history[HISTORY_LEN][CMD_SIZE] ;
+char cmd_buffer[CMD_SIZE] ;
+char history[HISTORY_LEN][CMD_SIZE] ;
 
 static unsigned int cmd_i = 0 ; 
 static int hist_pos = -1 ;
 
-static char prompt[] = "\n\e[0m\r\e[K\e[1m# >\e[22m" ; 
+static char prompt[] = "\e[0m\e[K\e[1m#>\e[22m " ; 
 
 void cli_init() {
-  printf(prompt) ;
+  printf("%s", prompt) ;
+  fflush(stdout) ;
 }
 
 void cli_input(const char * u_in) {
+  static int in_state = REG_CHAR ;
   unsigned int i = 0 ;
+//  for(uint32_t j = 0 ; (j < CMD_SIZE) && u_in[j] != '\0' ; j++) printf("%x,", u_in[j]) ;
   while(u_in[i]) {
-    switch (u_in[i++])
-    {
-      case ENTER_KEY:
-        cmd_buffer[cmd_i] = '\0' ;
-        cmd_i = 0 ;
-        printf("\n") ;
-//        cli_exec(cmd_buffer) ;
-        break ;
-      case BACKSPACE_KEY:
-        if (cmd_i > 0) {
-          printf("\e[1D\e[K") ;
-          cmd_i-- ;
-        }
-        break ;
-      case KEY_CHAR:
-        if (u_in[i++] != '[') break ;
-        switch (u_in[i++])
-        {
-          case UP_KEY:
-            break ;
-          case DOWN_KEY:
-            break ;
-          case LEFT_KEY:
-            break ;
-          case RIGHT_KEY:
-            break ;
-        }
-        break ;
-     
-      default:
-        cmd_buffer[cmd_i++] = u_in[i] ;
-        printf("%c", u_in[i]) ;
+    if (in_state == ESC_SEQ) {
+      if (u_in[i] == '[') ;
+      else if (u_in[i] == UP_KEY) {
+//        printf("up\r\n") ;
+        in_state = REG_CHAR ;
+      }
+      else if (u_in[i] == DOWN_KEY) {
+//        printf("down\r\n") ; 
+        in_state = REG_CHAR ;       
+      }
+      else if (u_in[i] == LEFT_KEY) {
+//        printf("left\r\n") ;
+        in_state = REG_CHAR ;
+        
+      }
+      else if (u_in[i] == RIGHT_KEY) {
+//        printf("right\r\n") ;
+        in_state = REG_CHAR ;
+      }
+      else in_state = REG_CHAR ;
     }
+
+    else if (u_in[i] == ENTER_KEY) SystemState = SYS_CMD_EXEC ;
+
+    else if (u_in[i] == BACKSPACE_KEY) {
+      if (cmd_i > 0) {
+        printf("\e[1D\e[K") ;
+        fflush(stdout) ;
+        cmd_i-- ;
+      }
+    }
+
+    else if (u_in[i] == KEY_CHAR) in_state = ESC_SEQ ;
+
+    else {
+      cmd_buffer[cmd_i++] = u_in[i] ;
+      putchar(u_in[i]) ;
+      fflush(stdout) ;
+    }
+
+    i++ ;
   }
 }
 
-void cli_exec(char * cmd)
+void cli_exec()
 {
-  int i = 0 ;
+  SystemState = SYS_RUNNING ;
+  printf("\r\n") ;
+
+  if (cmd_i == 0) {
+    printf("%s", prompt) ;
+    fflush(stdout) ;
+    return ;
+  }
+
+  cmd_buffer[cmd_i] = '\0' ;
+  cmd_i = 0 ;
 
   char *argv[CMDS_MAX_ARGS] ;
 	int argc = 0 ;
   char * loc ;
   int pos = 0 ;
 
-  while(loc = strchr(&cmd[pos], ' ')) {
-    argv[argc++] = &cmd[pos] ; 
+  while((loc = strchr(&cmd_buffer[pos], ' ')) != NULL) {
+    argv[argc++] = &cmd_buffer[pos] ; 
     *loc = '\0' ; 
-    pos += (loc - &cmd[pos]) ;
+    pos += (loc - &cmd_buffer[pos]) ;
   }
 
-  while(commands_list[i].cmd_str) {
+  argv[argc++] = &cmd_buffer[pos] ;   
+  
+  int i = 0 ;
+  while(commands_list[i].cmd_str[0]) {
     if(strncmp(argv[0], commands_list[i].cmd_str, CMD_SIZE) == 0) {
       commands_list[i].cmd_ptr(argc, argv) ;
+      printf("%s", prompt) ;
+      return ;
     }
-    else {
-      printf("Unknown command!") ;
-    }
+    i++ ;
   }
-
-  printf(prompt) ;
+  printf("Unknown command!\r\n") ;
+  printf("%s", prompt) ;
+  fflush(stdout) ;
 }
 

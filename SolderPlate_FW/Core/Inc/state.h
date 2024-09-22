@@ -1,9 +1,9 @@
 /**
   ******************************************************************************
-  * @file           : reset.h
+  * @file           : state.h
   * @author         : TiZed
-  * @brief          : Header for reset.c file.
-  *                   System reset calls.
+  * @brief          : System state variables.
+  *                   
   ******************************************************************************
   * @attention
   *
@@ -14,28 +14,25 @@
   ******************************************************************************
   */
 
-#ifndef __RESET_H
-#define __RESET_H
+#ifndef __STATE_H
+#define __STATE_H
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-extern uint32_t _estack;
+typedef enum {
+  SYS_POWER_UP = 0,
+  SYS_RUNNING,
+  SYS_CMD_EXEC,
+  SYS_RESET,
+  SYS_BOOTLOADER_RESET
+} system_state_t ;
 
-static inline void reset_to_bootloader() {
-    uint64_t * ptr = (uint64_t*)&_estack;
-	*ptr = 0xDEADBEEFCC00FFEEULL;
-
-    HAL_NVIC_SystemReset() ;
-}
-
-static inline void reset() {
-    HAL_NVIC_SystemReset() ;
-}
+extern system_state_t SystemState ;
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* __RESET_H */
+#endif /* __STATE_H */

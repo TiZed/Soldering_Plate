@@ -36,9 +36,11 @@ extern "C" {
 
 #define CLI_CLEAR_FORMAT    "\x1b[0m"
 
+enum cli_state {REG_CHAR = 0, ESC_SEQ} ;
+
 void cli_init() ;
 void cli_input(const char *) ;
-void cli_exec(char *) ;
+void cli_exec() ;
 
 #ifdef __cplusplus
 }

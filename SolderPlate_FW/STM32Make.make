@@ -64,7 +64,9 @@ Core/Src/cli_commands.c \
 Core/Src/lcd16x2.c \
 Core/Src/leds.c \
 Core/Src/main.c \
+Core/Src/persistent_data.c \
 Core/Src/pid.c \
+Core/Src/state.c \
 Core/Src/stm32f1xx_hal_msp.c \
 Core/Src/stm32f1xx_it.c \
 Core/Src/syscalls.c \

@@ -18,18 +18,19 @@
 #include <stdio.h>
 
 #include "cli_commands.h"
-#include "reset.h"
+#include "state.h"
 
 s_cmd commands_list[] = {
     {"reset",   cmd_reset,  0, 0},
-    {0, 0, 0, 0}
+    {"\0", NULL, 0, 0}
 } ;
 
 unsigned int cmd_reset(int argc, char **argv) {
-    if (argc > 0)
+    if (argc > 0) {
       if (strcmp(argv[1], "bootloader")) {
-        reset_to_bootloader() ;
+        SystemState = SYS_BOOTLOADER_RESET ;
       }
-    else reset() ;
+    }
+    else SystemState = SYS_RESET ;
     return 1 ;
 }

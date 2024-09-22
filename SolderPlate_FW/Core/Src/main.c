@@ -22,8 +22,8 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "usb_redirect.h"
 #include "usbd_cdc_if.h"
+#include "usb_redirect.h"
 
 #include <stdio.h>
 #include <math.h>
@@ -34,6 +34,8 @@
 #include "leds.h"
 #include "pid.h"
 #include "cli.h"
+#include "state.h"
+#include "persistent_data.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -100,6 +102,16 @@ static void MX_TIM2_Init(void);
 static void MX_TIM3_Init(void);
 static void MX_IWDG_Init(void);
 /* USER CODE BEGIN PFP */
+
+extern uint32_t _estack;
+
+static inline void reset_to_bootloader() {
+  uint64_t * ptr = (uint64_t*)&_estack;
+	*ptr = 0xDEADBEEFCC00FFEEULL;
+
+  NVIC_SystemReset() ;
+}
+
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -118,7 +130,7 @@ uint8_t ssr_on_char[8]  = {0x1f, 0x1f, 0x1f, 0x1f, 0x1f, 0x1f, 0x1f, 0x00} ;
 leds_state_t * orange_led ;
 leds_state_t * blue_led ;
 
-static uint32_t sec_ticker = 0 ;
+volatile uint32_t sec_ticker = 0 ;
 
 /* USER CODE END 0 */
 
@@ -134,8 +146,9 @@ int main(void)
   float therm_rt, int_temp ;
   char temp_update[17] ;
   int32_t last_count ;
-  
 
+  SystemState = SYS_POWER_UP ;
+  
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -165,6 +178,7 @@ int main(void)
   MX_IWDG_Init();
   /* USER CODE BEGIN 2 */
 
+//  setvbuf(stdout, NULL, _IONBF, 0);
   HAL_ADCEx_Calibration_Start(&hadc1) ;
 
   HAL_GPIO_WritePin(BP_LED_GPIO_Port, BP_LED_Pin, GPIO_PIN_RESET) ;
@@ -180,7 +194,7 @@ int main(void)
   blue_led = new_led(16, &(TIM2->CCR2)) ;
 
   set_led(blue_led, 20, 500) ;
-  printf("Start!\n\r") ;
+//  printf("Start!\r\n") ;
   HAL_IWDG_Refresh(&hiwdg) ;
 
   TIM2->CCR3 = 27000 ; // LCD contrast
@@ -210,10 +224,19 @@ int main(void)
 
   HAL_TIM_Base_Start_IT(&htim3) ;
 
+  // Reset to bootloader, if encoder button is pressed for more than 30sec.
+  uint32_t press_start = 0 ;
+  while(HAL_GPIO_ReadPin(EncButton_GPIO_Port, EncButton_Pin) == GPIO_PIN_RESET) {
+    HAL_Delay(100) ;
+    if(press_start++ > 50) reset_to_bootloader() ;
+  }
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  SystemState = SYS_RUNNING ;
+
   while (1)
   {
   //  printf("-----\n\r") ;
@@ -274,7 +297,7 @@ int main(void)
     }
 
     // Update LCD 
-    if(update_display) {
+    if(update_display && SystemState == SYS_RUNNING) {
       HAL_IWDG_Refresh(&hiwdg) ;
 
       LCD_SetPosition(LINE_2, 0) ;
@@ -288,8 +311,12 @@ int main(void)
 */
       update_display = 0 ;
     }
-  //  CDC_Transmit_FS((uint8_t *) test, 6) ;
-//    HAL_Delay(1000) ;
+
+    if (SystemState == SYS_RESET) HAL_NVIC_SystemReset() ;
+    if (SystemState == SYS_BOOTLOADER_RESET) reset_to_bootloader() ;
+
+    if (SystemState == SYS_CMD_EXEC) cli_exec() ;
+ 
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -428,7 +455,7 @@ static void MX_IWDG_Init(void)
 
   /* USER CODE END IWDG_Init 1 */
   hiwdg.Instance = IWDG;
-  hiwdg.Init.Prescaler = IWDG_PRESCALER_256;
+  hiwdg.Init.Prescaler = IWDG_PRESCALER_64;
   hiwdg.Init.Reload = 4095;
   if (HAL_IWDG_Init(&hiwdg) != HAL_OK)
   {
@@ -736,14 +763,12 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc){
 void USB_CDC_RxHandler(uint8_t* Buf, uint32_t Len)
 {
     char cmd_str[CMD_SIZE] ;
+
     memcpy(cmd_str, Buf, Len) ;
-    for(int32_t i = Len ; i < CMD_SIZE ; i++) cmd_str[i] = '\0' ;
-    printf("%s\n", cmd_str) ;
+    cmd_str[Len] = '\0' ;
 
     cli_input(cmd_str) ;
 }
-
-
 /* USER CODE END 4 */
 
 /**
