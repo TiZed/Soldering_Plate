@@ -143,8 +143,8 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
-  float adc_v = 0, plate_temp ;
-  float therm_rt, int_temp ;
+  float plate_temp ;
+  float therm_rt ;
   char temp_update[17] ;
   int32_t last_count ;
 
@@ -262,8 +262,6 @@ int main(void)
       thrm_sum /= THRM_AVG ;
       thrm_buf_idx = 0 ;
 
-      adc_v = ADC_VDDA * (thrm_sum / (float)ADC_RANGE) ;
-
       // Calculate plate temperature
       therm_rt = rt_by_ratio(thrm_sum / (float)ADC_RANGE, THERM_R1) ;
       plate_temp = calculate_temperature(therm_rt, THERM_BETA, THERM_R_T25) ;
@@ -275,7 +273,9 @@ int main(void)
 
       update_display = 1 ;
     }
-    
+
+  // adc_v = ADC_VDDA * (thrm_sum / (float)ADC_RANGE) ;  
+  
   //  adc_v = ADC_VDDA * ((float) adc_results[ADC_INTTEMP_CH] / (float) ADC_RANGE) ;
   //  int_temp = (INT_TEMP_V25 - adc_v * 1000) / INT_TEMP_STEP + 25 ;
   //  printf("IntTemp = %3.1f | VIntTemp = %1.3fV (%d)\n\r", int_temp, adc_v, adc_results[ADC_INTTEMP_CH]) ;

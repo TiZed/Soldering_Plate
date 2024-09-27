@@ -24,12 +24,12 @@
 #include "state.h"
 
 char cmd_buffer[CMD_SIZE] ;
-char history[HISTORY_LEN][CMD_SIZE] ;
+// char history[HISTORY_LEN][CMD_SIZE] ;
 
 static unsigned int cmd_i = 0 ; 
-static int hist_pos = -1 ;
+// static int hist_pos = -1 ;
 
-static char prompt[] = "\e[0m\e[K\e[1m#>\e[22m " ; 
+static char prompt[] = "\x1B[0m\x1B[K\x1B[1m#>\x1B[22m " ; 
 
 void cli_init() {
   printf("%s", prompt) ;
@@ -67,7 +67,7 @@ void cli_input(const char * u_in) {
 
     else if (u_in[i] == BACKSPACE_KEY) {
       if (cmd_i > 0) {
-        printf("\e[1D\e[K") ;
+        printf("\x1B[1D\x1B[K") ;
         fflush(stdout) ;
         cmd_i-- ;
       }

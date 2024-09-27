@@ -25,7 +25,7 @@ extern "C" {
 #define CMDS_MAX_ARGS 10
 #define HISTORY_LEN   20
 
-#define KEY_CHAR    '\e'
+#define KEY_CHAR    '\x1B'
 #define UP_KEY      'A'
 #define DOWN_KEY    'B'
 #define RIGHT_KEY   'C'
@@ -34,7 +34,7 @@ extern "C" {
 #define BACKSPACE_KEY   '\b'
 #define ENTER_KEY       '\r'
 
-#define CLI_CLEAR_FORMAT    "\x1b[0m"
+#define CLI_CLEAR_FORMAT    "\x1B[0m"
 
 enum cli_state {REG_CHAR = 0, ESC_SEQ} ;
 
