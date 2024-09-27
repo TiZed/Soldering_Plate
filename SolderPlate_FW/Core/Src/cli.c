@@ -117,6 +117,7 @@ void cli_exec()
     if(strncmp(argv[0], commands_list[i].cmd_str, CMD_SIZE) == 0) {
       commands_list[i].cmd_ptr(argc, argv) ;
       printf("%s", prompt) ;
+      fflush(stdout) ;
       return ;
     }
     i++ ;

@@ -27,6 +27,7 @@
 
 #include <stdio.h>
 #include <math.h>
+#include <stdint.h>
 
 #include "lcd16x2.h"
 #include "config.h"
@@ -218,7 +219,19 @@ int main(void)
   therm_rt = 0.0 ;
   last_count = TIM1->CNT ;
 
-  pid_config_t * plate_pid = init_pid(20, 0, 0, 0, 200) ;
+  HAL_IWDG_Refresh(&hiwdg) ;
+  if (persistent_load() != HAL_OK) {
+    LCD_SetPosition(LINE_1, 0) ;
+    LCD_Print("Config Error!") ;
+
+    Error_Handler();
+  }
+
+  pid_config_t * plate_pid = init_pid(persistent_data->p_gain, 
+                                      persistent_data->i_gain, 
+                                      persistent_data->d_gain, 
+                                      persistent_data->i_min,
+                                      persistent_data->i_max) ;
 
   uint8_t update_display = 1 ; 
 
@@ -455,7 +468,7 @@ static void MX_IWDG_Init(void)
 
   /* USER CODE END IWDG_Init 1 */
   hiwdg.Instance = IWDG;
-  hiwdg.Init.Prescaler = IWDG_PRESCALER_64;
+  hiwdg.Init.Prescaler = IWDG_PRESCALER_256;
   hiwdg.Init.Reload = 4095;
   if (HAL_IWDG_Init(&hiwdg) != HAL_OK)
   {

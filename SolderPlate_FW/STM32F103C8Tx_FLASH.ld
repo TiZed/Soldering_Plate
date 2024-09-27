@@ -62,8 +62,8 @@ _Min_Stack_Size = 0x400; /* required amount of stack */
 MEMORY
 {
 RAM (xrw)      : ORIGIN = 0x20000000, LENGTH = 20K
-FLASH (rx)      : ORIGIN = 0x8001000, LENGTH = 59K
-PERS_VARS (xrw) : ORIGIN = 0x800fc00, LENGTH = 1K
+FLASH (rx)     : ORIGIN = 0x8001000, LENGTH = 59K
+PERS_VARS (r)  : ORIGIN = 0x800fc00, LENGTH = 1K
 }
 
 /* Define output sections */
@@ -161,7 +161,7 @@ SECTIONS
     . = ALIGN(4);
     _ebss = .;         /* define a global symbol at bss end */
     __bss_end__ = _ebss;
-  } >RAM
+  } > RAM
 
   /* User_heap_stack section, used to check that there is enough RAM left */
   ._user_heap_stack :
@@ -172,15 +172,15 @@ SECTIONS
     . = . + _Min_Heap_Size;
     . = . + _Min_Stack_Size;
     . = ALIGN(8);
-  } >RAM
+  } > RAM
 
-  .pers_vars :
+  .pers_vars (NOLOAD) :
   {
     . = ALIGN(4);
     *(.pers_vars)
     . = ALIGN(4);
-  } >PERS_VARS
-
+  } > PERS_VARS
+  
   /* Remove information from the standard libraries */
   /DISCARD/ :
   {

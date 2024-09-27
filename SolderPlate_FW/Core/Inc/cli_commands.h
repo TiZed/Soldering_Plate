@@ -26,13 +26,14 @@ typedef struct {
     const char * cmd_str ;
     unsigned int (* cmd_ptr)(int argc, char *argv[]) ;
 
+    const int min_args ;  
     const int max_args ;
-    const int min_args ;    
 } s_cmd ;
 
 extern s_cmd commands_list[] ;
 
 unsigned int cmd_reset(int argc, char **argv) ;
+unsigned int get_pid_param(int argc, char **argv) ;
 
 #ifdef __cplusplus
 }
