@@ -28,9 +28,9 @@ typedef struct {
 
     const int min_args ;  
     const int max_args ;
-} s_cmd ;
+} cmd_def_t ;
 
-extern s_cmd commands_list[] ;
+extern cmd_def_t commands_list[] ;
 
 unsigned int cmd_reset(int argc, char **argv) ;
 unsigned int get_pid_param(int argc, char **argv) ;

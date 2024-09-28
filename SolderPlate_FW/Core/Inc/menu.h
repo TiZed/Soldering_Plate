@@ -1,9 +1,9 @@
 /**
   ******************************************************************************
-  * @file           : state.h
+  * @file           : menu.h
   * @author         : TiZed
-  * @brief          : System state variables.
-  *                   
+  * @brief          : Header for menu.c file.
+  *                   Contains the common defines for user menu
   ******************************************************************************
   * @attention
   *
@@ -14,26 +14,27 @@
   ******************************************************************************
   */
 
-#ifndef __STATE_H
-#define __STATE_H
+#ifndef __MENU_H
+#define __MENU_H
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-typedef enum {
-  SYS_POWER_UP = 0,
-  SYS_RUNNING,
-  SYS_MENU,
-  SYS_CMD_EXEC,
-  SYS_RESET,
-  SYS_BOOTLOADER_RESET
-} system_state_t ;
+typedef struct {
+    const char * title ;
 
-extern system_state_t SystemState ;
+    const double min_value ;
+    const double max_value ;
+
+    double * value ;
+} menu_item_t ;
+
+extern menu_item_t user_menu[] ;
+extern uint32_t menu_size ;
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* __STATE_H */
+#endif /* __MENU_H */

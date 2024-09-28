@@ -68,6 +68,7 @@ target_sources(stm32cubemx INTERFACE
     ../../Core/Src/persistent_data.c
     ../../Core/Src/thermistor.c
     ../../Core/Src/usb_redirect.c
+    ../../Core/Src/menu.c
 )
 
 target_link_directories(stm32cubemx INTERFACE

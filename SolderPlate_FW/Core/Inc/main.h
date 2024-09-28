@@ -107,6 +107,12 @@ void Error_Handler(void);
 #define Disp_Port  GPIOB
 
 typedef enum {DEV_ERROR = 0, SAFE_TEMP, HOT_TEMP} device_state_t ;
+typedef enum {BUTTON_DONE = 0, BUTTON_PRESS, BUTTON_RELEASE, BUTTON_SHORT, BUTTON_LONG} enc_button_state_t ;
+
+struct enc_button_s {
+  enc_button_state_t state ;
+  uint32_t timer ;
+} ;
 
 void USB_CDC_RxHandler(uint8_t *, uint32_t) ;
 /* USER CODE END Private defines */

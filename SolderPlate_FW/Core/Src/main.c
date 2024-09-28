@@ -28,6 +28,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <stdint.h>
+#include <stdbool.h>
 
 #include "lcd16x2.h"
 #include "config.h"
@@ -37,6 +38,7 @@
 #include "cli.h"
 #include "state.h"
 #include "persistent_data.h"
+#include "menu.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -53,14 +55,17 @@
 #define LED_RANGE ((2 << 16) - 1)
 #define LED_RATE  (100)
 
+#define LCD_BLINK_RATE (30)        // x30mS
+
+#define SHORT_PRESS (5)            // x10mS
+#define LONG_PRESS  (100)          // x10mS
+
 #define INT_TEMP_STEP   (4.3)       // mV
 #define INT_TEMP_V25    (1430.0)    // mV
 
 #define ADC_THRM_CH     (0)
 #define ADC_INTTEMP_CH  (1)
 #define ADC_VREF_CH     (2)
-
-// #define PUTCHAR_PROTOTYPE int __io_putchar(int ch)
 
 /* USER CODE END PD */
 
@@ -132,6 +137,9 @@ leds_state_t * orange_led ;
 leds_state_t * blue_led ;
 
 volatile uint32_t sec_ticker = 0 ;
+volatile struct enc_button_s enc_button = {BUTTON_DONE, 0} ;
+volatile uint32_t lcd_timer = 2 * LCD_BLINK_RATE ;
+bool is_lcd_blink = false ;
 
 /* USER CODE END 0 */
 
@@ -249,17 +257,20 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   SystemState = SYS_RUNNING ;
+  int32_t menu_i = 0 ;
+  double current_value = 0.0 ;
 
   while (1)
   {
-  //  printf("-----\n\r") ;
-    
+    // Accumulated enough thermal sensor captures to do an average  
     if(thrm_buf_idx >= THRM_AVG) {
       float thrm_sum = 0 ;
 
       // Average ADC readings
       for(int i = 0 ; i < THRM_AVG ; i++) thrm_sum += (float)thrm_res_buffer[i] ;
       thrm_sum /= THRM_AVG ;
+
+      // Reset samples accumulator count
       thrm_buf_idx = 0 ;
 
       // Calculate plate temperature
@@ -267,6 +278,7 @@ int main(void)
       plate_temp = calculate_temperature(therm_rt, THERM_BETA, THERM_R_T25) ;
 
       // Update PID and set plate SSR on time
+      // On time is in 10mS resolution 
       double pid_res = update_pid(plate_pid, plate_set_temp - plate_temp, plate_temp) ;
       if(pid_res <= 0) ssr_on_counter = 0 ;
       else ssr_on_counter = (uint16_t)pid_res ; 
@@ -283,19 +295,63 @@ int main(void)
   //  adc_v = ADC_VDDA * ((float) adc_results[2] / (float) ADC_RANGE) ;
   //  printf("Vref = %1.3fV (%d)\n\r", adc_v, adc_results[2]) ;
 
-    // Update set temperature value
-    if((TIM1->CNT >> 2) - last_count) { 
-      int32_t change = ((int32_t)(TIM1->CNT >> 2) - last_count) ;
+    if(SystemState == SYS_RUNNING) {
+      // Update set temperature value
+      if((TIM1->CNT >> 2) - last_count) { 
+        int32_t change = ((int32_t)(TIM1->CNT >> 2) - last_count) ;
 
-      if(abs(change) < 10) user_set_temp += change * 1.0 ;
-      else user_set_temp += change * 5.0 ;
+        if (abs(change) < 10) user_set_temp += change * 1.0 ;
+        else user_set_temp += change * 5.0 ;
 
-      last_count = TIM1->CNT >> 2 ;
+        last_count = TIM1->CNT >> 2 ;
 
-      if(user_set_temp > MAX_TEMP) user_set_temp = MAX_TEMP ;
-      if(user_set_temp < MIN_TEMP) user_set_temp = MIN_TEMP ;
+        if (user_set_temp > MAX_TEMP) user_set_temp = MAX_TEMP ;
+        if (user_set_temp < MIN_TEMP) user_set_temp = MIN_TEMP ;
 
-      update_display = 1 ; 
+        if (user_set_temp != plate_set_temp) is_lcd_blink = true ;
+        else is_lcd_blink = false ;
+
+        update_display = 1 ; 
+      }
+
+      // Update LCD 
+      if(update_display) {
+        HAL_IWDG_Refresh(&hiwdg) ;
+
+        LCD_SetPosition(LINE_1, 0) ;
+        LCD_Print("  Temp.   Set  ") ;
+
+        LCD_SetPosition(LINE_2, 0) ;
+
+        if (is_lcd_blink && lcd_timer > LCD_BLINK_RATE) {
+          snprintf(temp_update, 17, "% 3.1f\xb2\x43          ", plate_temp) ;
+          LCD_Print(temp_update) ;
+        }
+        else {
+          snprintf(temp_update, 17, "% 3.1f\xb2\x43  % 3.0f\xb2\x43 ", plate_temp, user_set_temp) ;
+          LCD_Print(temp_update) ;
+        }
+
+        update_display = 0 ;
+      }
+
+      switch (enc_button.state)
+      {
+      case BUTTON_SHORT:
+        plate_set_temp = user_set_temp ;
+        is_lcd_blink = false ;
+        enc_button.state = BUTTON_DONE ;
+        break;
+      case BUTTON_LONG:
+        if (SystemState == SYS_RUNNING) SystemState = SYS_MENU ;
+        enc_button.state = BUTTON_DONE ;
+        break;
+      case BUTTON_RELEASE:
+        enc_button.state = BUTTON_DONE ;
+        break;
+      default:
+        break;
+      }
     }
 
     if(ssr_on_counter > 0) {
@@ -309,20 +365,58 @@ int main(void)
       HAL_GPIO_WritePin(SSR_GPIO_Port, SSR_Pin, GPIO_PIN_RESET) ;
     }
 
-    // Update LCD 
-    if(update_display && SystemState == SYS_RUNNING) {
-      HAL_IWDG_Refresh(&hiwdg) ;
+    if (SystemState == SYS_MENU) {
+      if((TIM1->CNT >> 2) - last_count) { 
+        int32_t change = ((int32_t)(TIM1->CNT >> 2) - last_count) ;
 
-      LCD_SetPosition(LINE_2, 0) ;
-      snprintf(temp_update, 17, "% 3.1f\xb2\x43  % 3.0f\xb2\x43 ", plate_temp, user_set_temp) ;
-      LCD_Print(temp_update) ;
-/*
-      printf("-----\n\r") ;
-      printf("VTherm = %1.3fV\n\r", adc_v) ;
-      printf("Rt = %3.1f  | Tp = %3.1f\n\r", therm_rt, plate_temp) ;
-      printf("SSR on counter: %d\n\r", ssr_on_counter) ;
-*/
-      update_display = 0 ;
+        menu_i += change ;
+
+        if (menu_i < 0) menu_i = 0 ;
+        if (menu_i >= (int32_t) menu_size) menu_i = menu_size - 1 ;
+
+        last_count = TIM1->CNT >> 2 ;
+
+        current_value = *(user_menu[menu_i].value) ;
+
+        update_display = 1 ;
+      }
+
+      if(update_display) {
+        HAL_IWDG_Refresh(&hiwdg) ;
+        LCD_SetPosition(LINE_1, 0) ;
+        snprintf(temp_update, 17, "\xf6 %-13s", user_menu[menu_i].title) ;
+        LCD_Print(temp_update) ;
+
+        if (user_menu[menu_i].value != NULL) {
+          LCD_SetPosition(LINE_2, 0) ;
+          snprintf(temp_update, 17, " %-15.1f", current_value) ;
+          LCD_Print(temp_update) ;
+        }
+        else {
+          LCD_SetPosition(LINE_2, 0) ;
+          snprintf(temp_update, 17, "               ") ;
+          LCD_Print(temp_update) ;
+        }
+
+        update_display = 0 ;
+      }
+
+     
+      switch (enc_button.state)
+      {
+      case BUTTON_SHORT:
+        enc_button.state = BUTTON_DONE ;
+        break;
+      case BUTTON_LONG:
+        SystemState = SYS_RUNNING ;
+        enc_button.state = BUTTON_DONE ;
+        break;
+      case BUTTON_RELEASE:
+        enc_button.state = BUTTON_DONE ;
+        break;
+      default:
+        break;
+      }
     }
 
     if (SystemState == SYS_RESET) HAL_NVIC_SystemReset() ;
@@ -468,7 +562,7 @@ static void MX_IWDG_Init(void)
 
   /* USER CODE END IWDG_Init 1 */
   hiwdg.Instance = IWDG;
-  hiwdg.Init.Prescaler = IWDG_PRESCALER_256;
+  hiwdg.Init.Prescaler = IWDG_PRESCALER_64;
   hiwdg.Init.Reload = 4095;
   if (HAL_IWDG_Init(&hiwdg) != HAL_OK)
   {
@@ -724,7 +818,7 @@ static void MX_GPIO_Init(void)
 
   /*Configure GPIO pin : EncButton_Pin */
   GPIO_InitStruct.Pin = EncButton_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(EncButton_GPIO_Port, &GPIO_InitStruct);
 
@@ -739,7 +833,16 @@ static void MX_GPIO_Init(void)
 /* USER CODE BEGIN 4 */
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
   if (GPIO_Pin == EncButton_Pin) {
-    plate_set_temp = user_set_temp ;
+    if(HAL_GPIO_ReadPin(EncButton_GPIO_Port, EncButton_Pin) == GPIO_PIN_RESET) {
+      enc_button.state = BUTTON_PRESS ;
+      enc_button.timer = 0 ;
+    }
+    
+    else if(HAL_GPIO_ReadPin(EncButton_GPIO_Port, EncButton_Pin) == GPIO_PIN_SET && enc_button.state == BUTTON_PRESS) {
+      if (enc_button.timer > LONG_PRESS) enc_button.state = BUTTON_LONG ;
+      else if(enc_button.timer > SHORT_PRESS) enc_button.state = BUTTON_SHORT ;
+      else enc_button.state = BUTTON_RELEASE ;
+    }
   }
 }
 
@@ -750,7 +853,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
     // Toggle onboard LED
     if(++led_counter == 100) {
       HAL_GPIO_TogglePin(BP_LED_GPIO_Port, BP_LED_Pin) ;
-      sec_ticker += 1 ;
+      sec_ticker++ ;
       led_counter = 0 ;
     }
 
@@ -760,6 +863,11 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 
     // Updates plate SSR on counter
     if(ssr_on_counter > 0) ssr_on_counter-- ;
+
+    if(enc_button.state == BUTTON_PRESS) enc_button.timer++ ;
+
+    if (lcd_timer == 0) lcd_timer = 2 * LCD_BLINK_RATE ;
+    else lcd_timer-- ;
 
     // Update LEDs state
     update_leds() ;

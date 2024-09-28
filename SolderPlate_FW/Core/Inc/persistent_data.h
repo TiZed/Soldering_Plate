@@ -31,6 +31,7 @@ typedef union {
     uint32_t pers_bits[sizeof(persistent_vars_t)/sizeof(uint32_t)] ;
 } persistent_store_t ;
 
+extern persistent_store_t persistent_store ;
 extern persistent_vars_t * persistent_data ;
 
 uint32_t persistent_save() ;

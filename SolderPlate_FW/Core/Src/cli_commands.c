@@ -21,8 +21,8 @@
 #include "state.h"
 #include "persistent_data.h"
 
-s_cmd commands_list[] = {
-  {"reset",   cmd_reset,  0, 1},
+cmd_def_t commands_list[] = {
+  {"reset", cmd_reset,  0, 1},
   {"get_pid_param", get_pid_param, 0, 0},
   {"\0", NULL, 0, 0}
 } ;
